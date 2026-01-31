@@ -561,11 +561,11 @@ function updateBallSize(v) {
       p2.style.left = tx; p2.style.top = ty;
       if(dir==='up') it.parentNode.insertBefore(it, target); else it.parentNode.insertBefore(target, it);
     }
-    function removePlayer(btn) { 
-      const it = btn.closest('.list-item'); 
-      if (it.playerEl) it.playerEl.remove(); // 필드 위 선수 제거
-     it.remove(); // 리스트 목록 제거
-    }
+function removePlayer(btn) { 
+  const it = btn.closest('.list-item'); 
+  if (it.playerEl) it.playerEl.remove(); // 필드 위 선수 제거
+  it.remove(); // 리스트 목록 제거
+}
     function editPlayer(btn) {
       const it = btn.closest('.list-item'), span = it.querySelector('span'), newName = prompt("수정:", span.innerText);
       if(newName) { span.innerText = newName; it.playerEl.innerText = newName; }
@@ -587,5 +587,3 @@ function updateBallSize(v) {
   </script>
 </body>
 </html>
-
-
