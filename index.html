@@ -96,7 +96,7 @@ touch-action: none;
     
     /* 가로 1열 유지 및 자동 폭 조절 */
     #bottomControls { 
-      pointer-events: auto; width: 95%; max-width: 1200px; 
+      pointer-events: auto; width: 95%; max-width: calc(95vh * 1.414);
       background: rgba(255, 255, 255, 0.98); 
       border-radius: 15px; padding: 10px; 
       display: flex; flex-direction: row; /* 가로 정렬 */
@@ -615,4 +615,3 @@ document.addEventListener('touchend', function (e) {
   </script>
 </body>
 </html>
-
