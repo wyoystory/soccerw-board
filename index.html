@@ -13,7 +13,11 @@
   <title>전문가용 축구 작전판 PRO</title>
   <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
   <style>
-    :root { --red-color: #e74c3c; --blue-color: #3498db; --bg-color: #f4f7f6; --toggle-btn-color: #2c3e50; }
+    :root {
+ --red-color: #e74c3c;
+ --blue-color: #3498db;
+ --bg-color: #f4f7f6;
+ --toggle-btn-color: #ffffff; }
     * { box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
     
     body { 
@@ -30,7 +34,21 @@
       overflow-x: hidden; width: 100%; touch-action: pan-y;
     }
     
-    #toggleMenuBtn { background: var(--toggle-btn-color); color: white; border: none; padding: 8px 0; width: 180px; border-radius: 10px; cursor: pointer; font-weight: bold; font-size: 14px; margin: 10px auto 0px auto; box-shadow: 0 4px 10px rgba(0,0,0,0.2); z-index: 2000; position: relative; }
+    #toggleMenuBtn { 
+background: var(--toggle-btn-color); 
+color: #082c0f; 
+border: none; 
+padding: 2px 0;    /* 상하 여백 (높이에 영향) */
+  width: 180px;      /* 가로 길이 */
+border-radius: 10px; 
+cursor: pointer; 
+font-weight: bold; 
+font-size: 14px;     /* 글자 크기 */
+margin: 10px auto 0px auto; 
+box-shadow: 0 4px 10px rgba(0,0,0,0.2); 
+z-index: 2000; 
+position: relative; 
+}
 
     #field { 
 width: 100%; 
@@ -576,7 +594,7 @@ function removePlayer(btn) {
 
     makeDraggable(ball);
 
-    // 두 손가락 확대(Pinch Zoom) 방지
+// 두 손가락 확대(Pinch Zoom) 방지
 document.addEventListener('touchstart', function (e) {
   if (e.touches.length > 1) {
     e.preventDefault();
@@ -592,11 +610,8 @@ document.addEventListener('touchend', function (e) {
   }
   lastTouchEnd = now;
 }, false);
-    
+
+
   </script>
 </body>
-
 </html>
-
-
-
