@@ -1,0 +1,13 @@
+{
+  "name": "전문가용 축구 작전판 PRO",
+  "short_name": "작전판",
+  "start_url": "soccer.html",
+  "display": "standalone",
+  "icons": [
+    {
+      "src": "soccerW.png",
+      "sizes": "192x192",
+      "type": "image/png"
+    }
+  ]
+}

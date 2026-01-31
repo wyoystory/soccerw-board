@@ -1,0 +1,585 @@
+<!DOCTYPE- html>
+<html lang="ko">
+<head>
+  <meta charset="UTF-8">
+<link rel="manifest" href="manifest.json">
+<link rel="apple-touch-icon" href="soccerW.png">
+<link rel="icon" href="soccerW.png" type="image/png">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="mobile-web-app-capable" content="yes"> 
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
+  <title>전문가용 축구 작전판 PRO</title>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
+  <style>
+    :root { --red-color: #e74c3c; --blue-color: #3498db; --bg-color: #f4f7f6; --toggle-btn-color: #2c3e50; }
+    * { box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
+    
+    body { 
+      margin: 0; padding: 0; display: flex; flex-direction: column; align-items: center; 
+
+      background-color: var(--bg-color); 
+      background-image: linear-gradient(rgba(0,0,0,0.2), rgba(0,0,0,0.2)), 
+                    url('https://postfiles.pstatic.net/MjAyNjAxMzBfMTIy/MDAxNzY5NzQ2NzAyOTUw.dxa1f5wm5MnMR4fYTDfMzoSz-HmwPdUj7AlqYdtVDn0g.BhrvLC9vl9ISwBp_NV-62O_R4_k8a6Vh07b4ZMoyw4Ug.PNG/ful.png?type=w580'); 
+/* ------------- 백그라운드 이미지 ------------------ */
+      background-size: cover;
+      background-position: center;
+      background-attachment: fixed;
+      font-family: 'Pretendard', sans-serif; 
+      overflow-x: hidden; width: 100%; touch-action: pan-y;
+    }
+
+
+#zoom-bar {
+  position: sticky; top: 0; width: 100%; background: #2c3e50; 
+  padding: 10px; display: none; justify-content: center; align-items: center; 
+  gap: 15px; z-index: 3000; color: white; font-size: 14px;
+}
+#zoom-bar input { cursor: pointer; width: 150px; }
+
+    
+    #toggleMenuBtn { background: var(--toggle-btn-color); color: white; border: none; padding: 8px 0; width: 180px; border-radius: 10px; cursor: pointer; font-weight: bold; font-size: 14px; margin: 10px auto 0px auto; box-shadow: 0 4px 10px rgba(0,0,0,0.2); z-index: 2000; position: relative; }
+
+    #field { 
+width: 100%; 
+max-width: calc(95vh * 1.414); /* 세로 높이 기준으로 가로가 너무 길어지지 않게 방지 */
+aspect-ratio: 1.414 / 1; 
+max-height: 85vh;
+/* ------------- 축구장 필드 이미지 ------------------ */
+background-color: #27ae60; 
+background-size: 100% 100%; 
+border: 4px solid #fff; 
+position: relative; z-index: 1; 
+overflow: hidden; 
+}
+    
+    #field-container { 
+position: relative; 
+width: 100%; 
+display: flex;
+justify-content: center;
+align-items: center;
+padding: 5px; /* 화면 끝에 너무 붙지 않게 살짝 여유 */
+touch-action: none; 
+ }
+
+/* 배경 이미지 레이어 */
+#field-bg {
+  position: absolute;
+  top: 0; left: 0; width: 100%; height: 100%;
+  background-size: 100% 100%;
+  z-index: 1; /* 가장 아래 */
+}
+
+/* 라인 이미지 레이어 (투명 PNG 권장) */
+#field-lines {
+  position: absolute;
+  top: 0; left: 0; width: 100%; height: 100%;
+  background-image: url("filed.png");
+  background-size: 100% 100%;
+  pointer-events: none; /* 라인이 마우스 클릭을 방해하지 않도록 설정 */
+  z-index: 2; /* 배경보다 위 */
+}
+
+
+    #menuOverlay { position: absolute; top: 0; left: 0; width: 100%; display: flex; flex-direction: column; align-items: center; z-index: 1000; pointer-events: none; }
+    
+    /* 가로 1열 유지 및 자동 폭 조절 */
+    #bottomControls { 
+      pointer-events: auto; width: 95%; max-width: 1200px; 
+      background: rgba(255, 255, 255, 0.98); 
+      border-radius: 15px; padding: 10px; 
+      display: flex; flex-direction: row; /* 가로 정렬 */
+      justify-content: center; gap: 4px; 
+      box-shadow: 0 10px 30px rgba(0,0,0,0.4); 
+      backdrop-filter: blur(10px); transition: opacity 0.3s ease;
+      z-index: 1001; margin-top: 10px; touch-action: auto;
+      overflow-x: auto; /* 너무 좁으면 가로 스크롤 */
+    }
+    #bottomControls.collapsed { display: none; }
+
+
+    /* 텍스트 선명도 (그림자 제거) */
+    .draggable { 
+      border-radius: 50%; display: flex; align-items: center; justify-content: center; 
+      position: absolute; cursor: grab; font-weight: bold; z-index: 10 !important; 
+      background-size: cover; background-position: center; 
+      text-shadow: none !important; /* 그림자 절대 금지 */
+      pointer-events: auto; transform: translate(-50%, -50%); 
+      touch-action: none; transition: left 0.4s ease-out, top 0.4s ease-out;
+    }
+
+    .player { border: 4px solid #000; box-shadow: 0 4px 8px rgba(0,0,0,0.4); }
+    .player[data-team="red"] { border-color: var(--red-color); }
+    .player[data-team="blue"] { border-color: var(--blue-color); }
+    
+    .ball { 
+width: 45px; 
+height: 45px; 
+background-image: url("Wball.gif"); 
+background-size: cover;
+z-index: 10; 
+border: 2px solid #333; 
+}
+/* ------------- 축구공 이미지 ------------------ */
+
+    .card { 
+background: white; 
+padding: 5px 4px; 
+border-radius: 8px; 
+border: 1px solid #ddd; 
+flex: 1; 
+min-width: 120px; /* 카드의 최소 너비 확보 */
+display: flex; 
+flex-direction: column; 
+overflow: hidden; 
+    }
+
+    .card-header { 
+display: flex; 
+justify-content: space-between; 
+align-items: center; 
+margin-bottom: 8px; 
+border-bottom: 2px solid #eee; 
+padding-bottom: 5px; 
+}
+    .card-header h3, .card h3 {
+  font-size: 11px !important; 
+  margin: 2px 0 !important;
+}
+
+    .formation-select { 
+  font-size: 10px;
+  padding: 2px;
+  max-width: 65px;
+}
+
+    .input-row { display: flex; width: 100%; gap: 3px; margin-bottom: 8px; align-items: center; }
+    input[type="text"] { flex: 1; min-width: 0; height: 30px; padding: 0 5px; border: 1.5px solid #ccc; border-radius: 6px; font-size: 12px; outline: none; }
+    
+input[type="text"], .btn-add, .color-toggle, .file-btn-box {
+  height: 24px !important; 
+  font-size: 10px !important;
+}
+
+    .color-toggle { display: flex; border: 1px solid #ccc; border-radius: 6px; overflow: hidden; height: 30px; flex-shrink: 0; }
+    .color-toggle input { display: none; }
+    .color-toggle label { width: 25px; height: 100%; display: flex; align-items: center; justify-content: center; font-size: 10px; font-weight: bold; cursor: pointer; background: #eee; color: #999; }
+    .color-toggle input:checked + label { background: #333; color: #fff; }
+    .color-toggle input:checked + label.label-white { background: #fff; color: #000; border: 1px solid #333; }
+
+    .btn-add { height: 30px; padding: 0 8px; font-size: 12px; border-radius: 6px; border: none; color: white; cursor: pointer; font-weight: bold; flex-shrink: 0; }
+    .file-btn-box { height: 30px; border: 1.5px solid #ccc; border-radius: 6px; margin-bottom: 8px; background: #f8f9fa; cursor: pointer; display: flex; align-items: center; width: 100%; padding: 0 5px; overflow: hidden; }
+    .setting-grid { 
+display: grid; 
+grid-template-columns: 40px 1fr !important;; 
+column-gap: 3px; 
+align-items: center; 
+font-size: 10px; 
+width: 100% !important; 
+margin-bottom: 3px; 
+overflow: hidden; /* 삐져나감 방지 */
+}
+    
+    .data-btn-container { display: flex; flex-direction: column; gap: 5px; margin-top: auto; }
+.btn-full {
+  padding: 4px 2px !important;
+  font-size: 10px !important;
+  border-radius: 4px;
+}
+
+    .list-item { 
+display: flex; 
+justify-content: space-between; 
+padding: 4px 0; 
+border-bottom: 1px dashed #eee; 
+font-size: 11px; 
+align-items: center; 
+gap: 3px; 
+}
+    .btn-small { padding: 3px 5px; font-size: 10px; border: 1px solid #ddd; background: #fff; border-radius: 3px; cursor: pointer; }
+
+@media screen and (max-width: 600px) {
+      #bottomControls {
+        padding: 5px;
+        gap: 2px;
+}
+
+/* 게이지(슬라이더) 자체가 부모를 벗어나지 않게 설정 */
+input[type="range"] {
+    width: 100% !important; /* 부모 너비 안에서만 작동 */
+    height: 12px;
+    margin: 0 !important;
+    cursor: pointer;
+  }
+      }
+
+  </style>
+</head>
+<body>
+
+  <button id="toggleMenuBtn" onclick="toggleMenu()">▼ 설 정 ▼</button>
+
+  <div id="field-container">
+    <div id="field">
+      <div id="field-bg"></div>
+      <div id="field-lines"></div>
+      <div class="ball draggable" id="ball" style="left:50%; top:50%;"></div>
+    </div>
+
+    <div id="menuOverlay">
+      <div id="bottomControls" class="collapsed">
+        <div class="card">
+          <div class="card-header"><h3 style="color:var(--red-color); margin:0; font-size:14px;">RED</h3>
+            <select class="formation-select" onchange="applyFormation('red', this.value)">
+              <option value="">포메이션</option><option value="4-4-2">4-4-2</option><option value="4-3-3">4-3-3</option><option value="3-5-2">3-5-2</option>
+            </select>
+          </div>
+          <div class="input-row">
+            <input type="text" id="redInput" placeholder="선수명" onkeypress="if(event.key==='Enter')addPlayer('red')">
+            <div class="color-toggle">
+              <input type="radio" name="redColor" id="redW" value="white" checked onchange="changeTeamNameColor('red', 'white')"><label for="redW" class="label-white">W</label>
+              <input type="radio" name="redColor" id="redB" value="black" onchange="changeTeamNameColor('red', 'black')"><label for="redB">B</label>
+            </div>
+            <button class="btn-add" style="background:var(--red-color);" onclick="addPlayer('red')">추가</button>
+          </div>
+          <label class="file-btn-box">
+            <div class="setting-grid"><span>유니폼</span><div style="font-size:9px; color:#999; overflow:hidden; white-space:nowrap;" id="redFileName">지정 안됨</div></div>
+            <input type="file" accept="image/*" style="display:none;" onchange="handleImageUpload(event, 'red')">
+          </label>
+          <div class="setting-grid"><span>선수크기</span><input type="range" id="redPlayerSize" min="30" max="100" value="55" oninput="updateTeamStyle('red')"></div>
+          <div class="setting-grid"><span>글자크기</span><input type="range" id="redFontSize" min="10" max="24" value="12" oninput="updateTeamStyle('red')"></div>
+          <div id="redList" style="max-height:200px; overflow-y:auto; margin-top:5px;"></div>
+        </div>
+
+        <div class="card">
+          <div class="card-header"><h3 style="color:var(--blue-color); margin:0; font-size:14px;">BLUE</h3>
+            <select class="formation-select" onchange="applyFormation('blue', this.value)">
+              <option value="">포메이션</option><option value="4-4-2">4-4-2</option><option value="4-3-3">4-3-3</option><option value="3-5-2">3-5-2</option>
+            </select>
+          </div>
+          <div class="input-row">
+            <input type="text" id="blueInput" placeholder="선수명" onkeypress="if(event.key==='Enter')addPlayer('blue')">
+            <div class="color-toggle">
+              <input type="radio" name="blueColor" id="blueW" value="white" checked onchange="changeTeamNameColor('blue', 'white')"><label for="blueW" class="label-white">W</label>
+              <input type="radio" name="blueColor" id="blueB" value="black" onchange="changeTeamNameColor('blue', 'black')"><label for="blueB">B</label>
+            </div>
+            <button class="btn-add" style="background:var(--blue-color);" onclick="addPlayer('blue')">추가</button>
+          </div>
+          <label class="file-btn-box">
+            <div class="setting-grid"><span>유니폼</span><div style="font-size:9px; color:#999; overflow:hidden; white-space:nowrap;" id="blueFileName">지정 안됨</div></div>
+            <input type="file" accept="image/*" style="display:none;" onchange="handleImageUpload(event, 'blue')">
+          </label>
+          <div class="setting-grid"><span>선수크기</span><input type="range" id="bluePlayerSize" min="30" max="100" value="55" oninput="updateTeamStyle('blue')"></div>
+          <div class="setting-grid"><span>글자크기</span><input type="range" id="blueFontSize" min="10" max="24" value="12" oninput="updateTeamStyle('blue')"></div>
+          <div id="blueList" style="max-height:200px; overflow-y:auto; margin-top:5px;"></div>
+        </div>
+
+        <div class="card">
+          <h3 style="margin:0 0 8px 0; font-size:14px; color:#555;">FIELD & DATA</h3>
+          <div class="setting-grid" style="margin-bottom:8px;">
+     <span>투명도</span>
+     <input type="range" min="10" max="100" value="98" oninput="updateMenuOpacity(this.value)"></div>
+          <div class="setting-grid" style="margin-bottom:8px;">
+    <span>공크기</span>
+    <input type="range" id="ballSize" min="20" max="100" value="45" oninput="updateBallSize(this.value)"></div>
+
+<label class="file-btn-box">
+    <div class="setting-grid">
+        <span>축구공</span>
+        <div style="font-size:9px; color:#999; overflow:hidden; white-space:nowrap;" id="ballFileName">지정 안됨</div>
+    </div>
+    <input type="file" accept="image/*" style="display:none;" onchange="handleImageUpload(event, 'ball')">
+</label>
+
+          <label class="file-btn-box">
+            <div class="setting-grid"><span>경기장</span><div style="font-size:9px; color:#999; overflow:hidden; white-space:nowrap;" id="fieldNameDisplay">지정 안됨</div></div>
+            <input type="file" id="fieldInput" style="display:none;" onchange="handleImageUpload(event, 'field')">
+          </label>
+          <div class="data-btn-container" style="margin-top: 5px !important;">
+            <button class="btn-full" style="background:#f39c12;" onclick="takeScreenshot()">📸 스크린샷</button>
+            <button class="btn-full" style="background:#2c3e50;" onclick="saveData()">💾 저 장</button>
+            <button class="btn-full" style="background:#27ae60;" onclick="document.getElementById('fileLoader').click()">📂 불러오기</button>
+            <button class="btn-full" style="background:#e74c3c;" onclick="resetAll()">🔄 전체 초기화</button>
+          </div>
+          <input type="file" id="fileLoader" accept=".json" style="display:none;" onchange="loadData(event)">
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    const field = document.getElementById('field'), ball = document.getElementById('ball'), bottomControls = document.getElementById('bottomControls');
+    let currentFileName = "soccerW_filed_data.json";
+    const persistentImages = { red: null, blue: null, field: null, ball: null };
+    const activeDrags = new Map();
+
+    function makeDraggable(el) {
+      const onStart = (e) => {
+        if (e.target.closest('#bottomControls')) return;
+        const touches = e.changedTouches || [e];
+        for (const t of touches) {
+          const id = t.identifier !== undefined ? t.identifier : 'mouse';
+          const rect = el.getBoundingClientRect();
+          activeDrags.set(id, { target: el, offsetX: t.clientX - (rect.left + rect.width / 2), offsetY: t.clientY - (rect.top + rect.height / 2) });
+          el.style.transition = "none";
+          el.style.zIndex = 1000;
+        }
+      };
+      const onMove = (e) => {
+        const touches = e.changedTouches || [e];
+        for (const t of touches) {
+          const id = t.identifier !== undefined ? t.identifier : 'mouse';
+          const d = activeDrags.get(id);
+          if (d && d.target === el) {
+            const fr = field.getBoundingClientRect();
+            let x = ((t.clientX - fr.left - d.offsetX) / fr.width) * 100;
+            let y = ((t.clientY - fr.top - d.offsetY) / fr.height) * 100;
+            el.style.left = Math.max(0, Math.min(100, x)) + "%";
+            el.style.top = Math.max(0, Math.min(100, y)) + "%";
+          }
+        }
+        if (activeDrags.size > 0 && e.cancelable) e.preventDefault();
+      };
+      const onEnd = (e) => {
+        const touches = e.changedTouches || [e];
+        for (const t of touches) { activeDrags.delete(t.identifier !== undefined ? t.identifier : 'mouse'); }
+        el.style.zIndex = 5;
+        setTimeout(() => { el.style.transition = "left 0.4s ease-out, top 0.4s ease-out"; }, 10);
+      };
+      el.addEventListener('mousedown', onStart);
+      window.addEventListener('mousemove', onMove);
+      window.addEventListener('mouseup', onEnd);
+      el.addEventListener('touchstart', onStart, { passive: false });
+      window.addEventListener('touchmove', onMove, { passive: false });
+      window.addEventListener('touchend', onEnd);
+    }
+
+    // 실시간 팀 이름 색상 변경
+    function changeTeamNameColor(team, color) {
+      document.querySelectorAll(`.player[data-team="${team}"]`).forEach(p => p.style.color = color);
+    }
+
+    function addPlayer(t, n=null, x="50%", y="50%", c=null) {
+      const input = document.getElementById(t+'Input'), name = n || input.value.trim();
+      if(!name) return;
+      const chosenColor = c || document.querySelector(`input[name="${t}Color"]:checked`).value;
+      const p = document.createElement('div');
+      p.className='player draggable'; p.innerText=name; p.style.left=x; p.style.top=y; p.dataset.team=t;
+      p.style.color = chosenColor;
+      if(persistentImages[t]) { p.style.backgroundImage=`url(${persistentImages[t]})`; p.style.backgroundColor = 'transparent'; }
+      else { p.style.backgroundColor = 'rgba(0,0,0,0.3)'; }
+      const s = document.getElementById(t+'PlayerSize').value, f = document.getElementById(t+'FontSize').value;
+      p.style.width=s+'px'; p.style.height=s+'px'; p.style.fontSize=f+'px';
+      makeDraggable(p); field.appendChild(p);
+      const list = document.getElementById(t+'List'), item = document.createElement('div');
+      item.className = 'list-item'; item.playerEl = p;
+      item.innerHTML = `<span style="flex:1; font-weight:bold; overflow:hidden;">${name}</span><div style="display:flex; gap:3px;"><button class="btn-small" onclick="moveOrder(this, 'up')">▲</button><button class="btn-small" onclick="moveOrder(this, 'down')">▼</button><button class="btn-small" onclick="editPlayer(this)">수정</button><button class="btn-small" style="color:red;" onclick="removePlayer(this)">삭제</button></div>`;
+      list.appendChild(item); if(!n) input.value="";
+    }
+
+    function saveData() {
+      const fn = prompt("파일명 입력:", currentFileName.replace(".json", ""));
+      if (!fn) return;
+      currentFileName = fn + ".json";
+      const players = Array.from(document.querySelectorAll('.player')).map(p => ({
+        name: p.innerText, team: p.dataset.team, x: p.style.left, y: p.style.top, color: p.style.color
+      }));
+      const config = { players, ball: { x: ball.style.left, y: ball.style.top, size: ball.style.width || "45px" }, images: persistentImages };
+      const a = document.createElement("a");
+      a.href = URL.createObjectURL(new Blob([JSON.stringify(config)], {type: "application/json"}));
+      a.download = currentFileName; a.click();
+    }
+
+// 외부 주소 이미지를 보안 허용하며 불러오는 함수 (설명서)
+function setExternalImage(target, url) {
+  if (!url) return;
+  const img = new Image();
+  img.crossOrigin = "Anonymous"; // 보안 허용 요청의 핵심!
+  img.src = url;
+  img.onload = function() {
+    if(target === 'field') {
+      field.style.backgroundImage = `url('${url}')`;
+    } else {
+      document.querySelectorAll(`.player[data-team="${target}"]`).forEach(p => {
+        p.style.backgroundImage = `url('${url}')`;
+        p.style.backgroundColor = 'transparent';
+      });
+    }
+  };
+}
+
+    function loadData(event) {
+      const file = event.target.files[0]; if (!file || !confirm("데이터를 불러오시겠습니까?")) return;
+      const reader = new FileReader();
+      reader.onload = (e) => {
+        const d = JSON.parse(e.target.result);
+
+        document.querySelectorAll('.player, .list-item').forEach(el => el.remove());
+// 2. [추가] 필드 배경 초기화 (파일에 배경이 없더라도 기본으로 되돌림)
+    const defaultField = 'https://postfiles.pstatic.net/MjAyNjAxMjlfMjI1/MDAxNzY5NjM1Mjc0NjQ5.502_CqNalGrTYu6ZLubeKv3k_Yi01fCGmv4_tRIq_a4g.BvhqNdBmteUb3ZSa07vyILSugnFty_RPVM18IN9cxYAg.PNG/field.png?type=w580';
+    field.style.backgroundImage = `url('${defaultField}')`;
+    document.getElementById('fieldNameDisplay').innerText = "지정 안됨";
+    persistentImages.field = null; // 메모리상의 배경 데이터도 초기화
+
+        if (d.images) { 
+          Object.assign(persistentImages, d.images); 
+
+// loadData 함수 내부의 d.images.field 처리 부분
+if (d.images.field) {
+  persistentImages.field = d.images.field; // 메모리에 저장
+  const bgLayer = document.getElementById('field-bg');
+  if(bgLayer) {
+    bgLayer.style.backgroundImage = `url(${d.images.field})`;
+  }
+  document.getElementById('fieldNameDisplay').innerText = "불러온 배경";
+}
+
+      if (d.images.red) setExternalImage('red', d.images.red);
+      if (d.images.blue) setExternalImage('blue', d.images.blue);
+ 
+if (d.images.ball) {
+        ball.style.backgroundImage = `url('${d.images.ball}')`;
+        ball.style.backgroundColor = 'transparent';
+        ball.style.backgroundSize = 'cover';
+        if(document.getElementById('ballFileName')) {
+            document.getElementById('ballFileName').innerText = "저장된 공";
+        }
+      }
+    }  
+
+        if(d.players) d.players.forEach(p => addPlayer(p.team, p.name, p.x, p.y, p.color));
+        if (d.ball) { ball.style.left = d.ball.x; ball.style.top = d.ball.y; if(d.ball.size) {
+    ball.style.width = d.ball.size;
+    ball.style.height = d.ball.size;
+const ballSlider = document.getElementById('ballSize');
+    if (ballSlider) {
+ballSlider.value = parseInt(d.ball.size); // d.ball.size에서 숫자를 직접 추출
+    }
+  }
+}
+      };
+      reader.readAsText(file);
+      event.target.value = '';
+    }
+
+ function takeScreenshot() {
+  const wasCollapsed = bottomControls.classList.contains('collapsed');
+  if (!wasCollapsed) toggleMenu(); // 메뉴 숨기기
+
+  // 0.5초 대기 (메뉴가 완전히 사라진 후 캡처)
+  setTimeout(() => {
+    const target = document.querySelector("#field");
+    
+    html2canvas(target, {
+      useCORS: true,           // 외부 이미지 허용
+      allowTaint: true,       // 보안 정책 준수
+      scale: 2,                // 고화질 (2배)
+      backgroundColor: "#27ae60", // 배경이 비어있을 때 기본 초록색 적용
+      logging: true,
+      width: target.offsetWidth,
+      height: target.offsetHeight
+    }).then(canvas => {
+      try {
+        const link = document.createElement('a');
+        const now = new Date();
+        const dateStr = now.toISOString().slice(0, 10).replace(/-/g, "");
+        const timeStr = String(now.getHours()).padStart(2, '0') + String(now.getMinutes()).padStart(2, '0');
+        
+        // 파일 형식을 png로 변경 (라인 투명도 유지에 유리)
+        link.download = `${dateStr}_${timeStr}_soccerW.png`;
+        link.href = canvas.toDataURL('image/png');
+        link.click();
+      } catch (e) {
+        console.error("캡처 에러:", e);
+        alert("브라우저 보안 설정으로 인해 스크린샷을 생성할 수 없습니다. 이미지를 직접 업로드한 상태인지 확인해주세요.");
+      }
+      
+      if (!wasCollapsed) toggleMenu(); // 다시 메뉴 표시
+    });
+  }, 500);
+}
+
+
+ async function handleImageUpload(e, t) {
+  const f = e.target.files[0]; if(!f) return;
+  const b = await new Promise(r=>{
+    const rd=new FileReader(); 
+    rd.readAsDataURL(f); 
+    rd.onload=()=>r(rd.result);
+  });
+  
+  persistentImages[t] = b;
+  
+// handleImageUpload 함수 내부 수정
+if(t === 'field') { 
+    document.getElementById('field-bg').style.backgroundImage = `url(${b})`; 
+    document.getElementById('fieldNameDisplay').innerText = "배경:" + f.name; 
+}
+else if(t==='ball') {
+    ball.style.backgroundImage = `url(${b})`;
+    ball.style.backgroundColor = 'transparent'; // 기본 회색 제거
+    ball.style.backgroundSize = 'cover';
+    ball.style.backgroundPosition = 'center';
+    document.getElementById('ballFileName').innerText = "공:" + f.name;
+  }
+else { 
+    document.querySelectorAll(`.player[data-team="${t}"]`).forEach(p=>{ 
+      p.style.backgroundImage=`url(${b})`; 
+      p.style.backgroundColor = 'transparent'; 
+      // 아래 두 줄을 추가하면 스크린샷 성공 확률이 올라갑니다.
+      p.style.backgroundSize = 'cover';
+      p.style.backgroundPosition = 'center';
+    }); 
+    document.getElementById(t+'FileName').innerText = f.name; 
+  }
+}
+    function updateTeamStyle(t){
+      const s=document.getElementById(t+'PlayerSize').value, f=document.getElementById(t+'FontSize').value;
+      document.querySelectorAll(`.player[data-team="${t}"]`).forEach(p=>{p.style.width=s+'px';p.style.height=s+'px';p.style.fontSize=f+'px';});
+    }
+function updateBallSize(v) {
+  const ball = document.getElementById('ball');
+  ball.style.width = v + 'px';
+  ball.style.height = v + 'px';
+}
+    function applyFormation(t, f) {
+      const ps = Array.from(document.getElementById(t+'List').children).map(it => it.playerEl), forms = {'4-4-2':[[10,50],[20,20],[20,40],[20,60],[20,80],[32,20],[32,40],[32,60],[32,80],[44,35],[44,65]],'4-3-3':[[10,50],[20,20],[20,40],[20,60],[20,80],[32,30],[32,50],[32,70],[44,20],[44,50],[44,80]],'3-5-2':[[10,50],[20,25],[20,50],[20,75],[32,15],[32,32],[32,50],[32,68],[32,85],[44,35],[44,65]]};
+      const pos = forms[f]; if(!pos) return;
+      ps.forEach((p, i)=>{ if(pos[i]){ let x=t==='blue'?100-pos[i][0]:pos[i][0]; p.style.left=x+"%"; p.style.top=pos[i][1]+"%"; }});
+    }
+    function toggleMenu() { const col = bottomControls.classList.toggle('collapsed'); document.getElementById('toggleMenuBtn').innerText = col ? "▼ 설 정 ▼" : "▲ 설 정 ▲"; }
+    function updateMenuOpacity(v) { bottomControls.style.opacity = v / 100; }
+    function resetAll() { if(confirm("초기화하시겠습니까?")) location.reload(); }
+    function moveOrder(btn, dir) {
+      const it = btn.closest('.list-item'), target = dir === 'up' ? it.previousElementSibling : it.nextElementSibling;
+      if(!target) return;
+      const p1 = it.playerEl, p2 = target.playerEl;
+      const tx = p1.style.left, ty = p1.style.top;
+      p1.style.left = p2.style.left; p1.style.top = p2.style.top;
+      p2.style.left = tx; p2.style.top = ty;
+      if(dir==='up') it.parentNode.insertBefore(it, target); else it.parentNode.insertBefore(target, it);
+    }
+    function removePlayer(btn) { if(confirm("삭제?")) { const it = btn.closest('.list-item'); it.playerEl.remove(); it.remove(); } }
+    function editPlayer(btn) {
+      const it = btn.closest('.list-item'), span = it.querySelector('span'), newName = prompt("수정:", span.innerText);
+      if(newName) { span.innerText = newName; it.playerEl.innerText = newName; }
+    }
+
+// 필드 크기를 실시간으로 조절하는 함수
+    function adjustZoom(val) {
+      const container = document.getElementById('field-container');
+      const zoomText = document.getElementById('zoomVal');
+      
+      // 컨테이너 너비를 슬라이더 값에 따라 변경 (최소 200px까지 작아짐)
+      container.style.width = val + 'px';
+      
+      // 현재 크기를 텍스트로 표시
+      if(zoomText) zoomText.innerText = val + 'px';
+    }
+
+    makeDraggable(ball);
+  </script>
+</body>
+</html>
