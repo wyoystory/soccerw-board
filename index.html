@@ -35,20 +35,14 @@
     }
     
     #toggleMenuBtn { 
-background: var(--toggle-btn-color); 
-color: #082c0f; 
-border: none; 
-padding: 2px 0;    /* 상하 여백 (높이에 영향) */
-  width: 180px;      /* 가로 길이 */
-border-radius: 10px; 
-cursor: pointer; 
-font-weight: bold; 
-font-size: 14px;     /* 글자 크기 */
-margin: 10px auto 0px auto; 
-box-shadow: 0 4px 10px rgba(0,0,0,0.2); 
-z-index: 2000; 
-position: relative; 
+width: 130px; height: 35px;
+  background: var(--toggle-btn-color);
+  border-radius: 10px; font-weight: bold; border: none;
+  box-shadow: 0 4px 10px rgba(0,0,0,0.2); cursor: pointer;
 }
+
+#redAlignBtn { color: var(--red-color); }
+#blueAlignBtn { color: var(--blue-color); }
 
     #field { 
 width: 100%; 
@@ -224,11 +218,112 @@ input[type="range"] {
   }
       }
 
+/* 상단 툴바: 공간 부족 시 줄바꿈 허용 */
+.top-toolbar {
+display: flex;
+  align-items: center;
+  justify-content: center; /* 자식들을 중앙으로 모음 */
+  width: 95%;
+  max-width: calc(95vh * 1.414);
+  margin: 2px auto;
+  gap: 5px; /* 버튼 사이의 간격 */
+}
+
+/* 도구 그룹 디자인 */
+.tool-group { 
+  display: flex; 
+  gap: 3px; 
+  background: rgba(255,255,255,0.9); 
+  padding: 4px; 
+  border-radius: 8px; 
+  box-shadow: 0 2px 5px rgba(0,0,0,0.1);
+}
+
+/* 정렬 버튼 스타일 */
+.align-btn {
+padding: 6px 10px; font-size: 11px; font-weight: bold;
+  border-radius: 6px; border: none; cursor: pointer;
+  background: rgba(255,255,255,0.9); box-shadow: 0 2px 5px rgba(0,0,0,0.1);}
+
+.hidden { display: none !important; }
+
+/* 설정창 내부 슬라이드 스위치 */
+.switch { position: relative; display: inline-block; width: 34px; height: 18px; vertical-align: middle; }
+.switch input { opacity: 0; width: 0; height: 0; }
+.slider { position: absolute; cursor: pointer; top: 0; left: 0; right: 0; bottom: 0; background-color: #ccc; transition: .4s; border-radius: 18px; }
+.slider:before { position: absolute; content: ""; height: 14px; width: 14px; left: 2px; bottom: 2px; background-color: white; transition: .4s; border-radius: 50%; }
+input:checked + .slider { background-color: #27ae60; }
+input:checked + .slider:before { transform: translateX(16px); }
+
+.center-box { display: flex; justify-content: center; }
+.side-box { display: flex; align-items: center; width: 100%; }
+.side-box.left { justify-content: flex-end; padding-right: 8px; }
+.side-box.right { justify-content: flex-start; padding-left: 8px; }
+
+/* 기본 선수 공통 */
+.player {
+    transition: all 0.3s ease; /* 모양 바뀔 때 부드럽게 */
+    overflow: hidden;
+}
+
+/* 원형 */
+.player.shape-circle {
+    border-radius: 50% !important;
+    clip-path: circle(50% at 50% 50%);
+}
+
+/* 사각형 */
+.player.shape-square {
+    border-radius: 4px !important;
+    clip-path: inset(0% 0% 0% 0% round 4px);
+}
+
+/* 삼각형 */
+.player.shape-triangle {
+    clip-path: polygon(50% 0%, 0% 100%, 100% 100%);
+    border: none !important; /* 삼각형일 땐 테두리가 어색할 수 있음 */
+}
+
+/* 유니폼 모양 */
+.player.shape-jersey {
+    clip-path: polygon(30% 0%, 70% 0%, 100% 20%, 85% 45%, 75% 35%, 75% 100%, 25% 100%, 25% 35%, 15% 45%, 0% 20%);
+    border: none !important;
+}
+
+/* 세모와 유니폼에 번짐 없는 선명한 외곽선 적용 */
+.player.shape-triangle, 
+.player.shape-jersey {
+    border: none !important;
+    /* 상, 하, 좌, 우 4방향으로 1px씩 그림자를 겹쳐서 선처럼 보이게 함 */
+    filter: drop-shadow(1px 0 0 #000) 
+            drop-shadow(-1px 0 0 #000) 
+            drop-shadow(0 1px 0 #000) 
+            drop-shadow(0 -1px 0 #000);
+}
+
+/* 팀 색상으로 더 뚜렷하게 구분하고 싶다면 아래 코드 추가 */
+.player[data-team="red"].shape-triangle, 
+.player[data-team="red"].shape-jersey {
+    filter: drop-shadow(1.5px 0 0 #330000) drop-shadow(-1.5px 0 0 #330000) 
+            drop-shadow(0 1.5px 0 #330000) drop-shadow(0 -1.5px 0 #330000);
+}
+
   </style>
 </head>
 <body>
+<div class="top-toolbar">
+  <div class="side-box left">
+    <button id="redAlignBtn" class="align-btn hidden" onclick="alignPlayersSide('red')">RED 정렬</button>
+  </div>
 
-  <button id="toggleMenuBtn" onclick="toggleMenu()">▼ 설 정 ▼</button>
+  <div class="center-box">
+  <button id="toggleMenuBtn" onclick="toggleMenu()">▼ option ▼</button>
+</div>
+
+  <div class="side-box right">
+    <button id="blueAlignBtn" class="align-btn hidden" onclick="alignPlayersSide('blue')">BLUE 정렬</button>
+  </div>
+</div>
 
   <div id="field-container">
     <div id="field">
@@ -253,10 +348,31 @@ input[type="range"] {
             </div>
             <button class="btn-add" style="background:var(--red-color);" onclick="addPlayer('red')">추가</button>
           </div>
-          <label class="file-btn-box">
-            <div class="setting-grid"><span>유니폼</span><div style="font-size:9px; color:#999; overflow:hidden; white-space:nowrap;" id="redFileName">지정 안됨</div></div>
-            <input type="file" accept="image/*" style="display:none;" onchange="handleImageUpload(event, 'red')">
-          </label>
+
+<div class="setting-grid" style="display: flex; align-items: center; gap: 10px; margin-bottom: 8px;">
+  <span style="font-size: 10px; width: 40px; flex-shrink: 0;">유니폼</span>
+
+  <label style="flex: 1; min-width: 0; height: 20px; cursor: pointer; display: flex; align-items: center; background: #ececec; border: 1px solid #ccc; padding: 0 8px; border-radius: 10px; margin: 0;">
+    <div id="redFileName" style="font-size: 9px; color: #888; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;">지정 안됨</div>
+    <input type="file" accept="image/*" style="display:none;" onchange="handleImageUpload(event, 'red')">
+  </label>
+
+<div style="display: flex; gap: 4px; flex-shrink: 0;">
+  <button type="button" class="shape-btn" onclick="changeShape('red', 'circle')" title="원형">
+    <svg viewBox="0 0 24 24" width="14" height="14"><circle cx="12" cy="12" r="10" fill="currentColor"/></svg>
+  </button>
+  <button type="button" class="shape-btn" onclick="changeShape('red', 'square')" title="사각형">
+    <svg viewBox="0 0 24 24" width="14" height="14"><rect x="3" y="3" width="18" height="18" rx="2" fill="currentColor"/></svg>
+  </button>
+  <button type="button" class="shape-btn" onclick="changeShape('red', 'triangle')" title="삼각형">
+    <svg viewBox="0 0 24 24" width="14" height="14"><path d="M12 2L2 20h20L12 2z" fill="currentColor"/></svg>
+  </button>
+  <button type="button" class="shape-btn" onclick="changeShape('red', 'jersey')" title="유니폼">
+    <svg viewBox="0 0 24 24" width="14" height="14"><path d="M7 2L2 5v4l3 1v12h14V10l3-1V5l-5-3-3 2-3-2z" fill="currentColor"/></svg>
+  </button>
+</div>
+</div>
+
           <div class="setting-grid"><span>선수크기</span><input type="range" id="redPlayerSize" min="30" max="100" value="55" oninput="updateTeamStyle('red')"></div>
           <div class="setting-grid"><span>글자크기</span><input type="range" id="redFontSize" min="10" max="24" value="12" oninput="updateTeamStyle('red')"></div>
           <div id="redList" style="max-height:200px; overflow-y:auto; margin-top:5px;"></div>
@@ -276,17 +392,38 @@ input[type="range"] {
             </div>
             <button class="btn-add" style="background:var(--blue-color);" onclick="addPlayer('blue')">추가</button>
           </div>
-          <label class="file-btn-box">
-            <div class="setting-grid"><span>유니폼</span><div style="font-size:9px; color:#999; overflow:hidden; white-space:nowrap;" id="blueFileName">지정 안됨</div></div>
-            <input type="file" accept="image/*" style="display:none;" onchange="handleImageUpload(event, 'blue')">
-          </label>
+
+<div class="setting-grid" style="display: flex; align-items: center; gap: 10px; margin-bottom: 8px;">
+  <span style="font-size: 10px; width: 40px; flex-shrink: 0;">유니폼</span>
+
+  <label style="flex: 1; min-width: 0; height: 20px; cursor: pointer; display: flex; align-items: center; background: #ececec; border: 1px solid #ccc; padding: 0 8px; border-radius: 10px; margin: 0;">
+    <div id="redFileName" style="font-size: 9px; color: #888; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;">지정 안됨</div>
+    <input type="file" accept="image/*" style="display:none;" onchange="handleImageUpload(event, 'red')">
+  </label>
+
+<div style="display: flex; gap: 4px; flex-shrink: 0;">
+  <button type="button" class="shape-btn" onclick="changeShape('red', 'circle')" title="원형">
+    <svg viewBox="0 0 24 24" width="14" height="14"><circle cx="12" cy="12" r="10" fill="currentColor"/></svg>
+  </button>
+  <button type="button" class="shape-btn" onclick="changeShape('red', 'square')" title="사각형">
+    <svg viewBox="0 0 24 24" width="14" height="14"><rect x="3" y="3" width="18" height="18" rx="2" fill="currentColor"/></svg>
+  </button>
+  <button type="button" class="shape-btn" onclick="changeShape('red', 'triangle')" title="삼각형">
+    <svg viewBox="0 0 24 24" width="14" height="14"><path d="M12 2L2 20h20L12 2z" fill="currentColor"/></svg>
+  </button>
+  <button type="button" class="shape-btn" onclick="changeShape('red', 'jersey')" title="유니폼">
+    <svg viewBox="0 0 24 24" width="14" height="14"><path d="M7 2L2 5v4l3 1v12h14V10l3-1V5l-5-3-3 2-3-2z" fill="currentColor"/></svg>
+  </button>
+</div>
+</div>
+
           <div class="setting-grid"><span>선수크기</span><input type="range" id="bluePlayerSize" min="30" max="100" value="55" oninput="updateTeamStyle('blue')"></div>
           <div class="setting-grid"><span>글자크기</span><input type="range" id="blueFontSize" min="10" max="24" value="12" oninput="updateTeamStyle('blue')"></div>
           <div id="blueList" style="max-height:200px; overflow-y:auto; margin-top:5px;"></div>
         </div>
 
         <div class="card">
-          <h3 style="margin:0 0 8px 0; font-size:14px; color:#555;">FIELD & DATA</h3>
+          <h3 style="margin:0 0 8px 0; font-size:14px; color:#555;">SETTING</h3>
           <div class="setting-grid" style="margin-bottom:8px;">
      <span>투명도</span>
      <input type="range" min="10" max="100" value="98" oninput="updateMenuOpacity(this.value)"></div>
@@ -306,6 +443,23 @@ input[type="range"] {
             <div class="setting-grid"><span>경기장</span><div style="font-size:9px; color:#999; overflow:hidden; white-space:nowrap;" id="fieldNameDisplay">지정 안됨</div></div>
             <input type="file" id="fieldInput" style="display:none;" onchange="handleImageUpload(event, 'field')">
           </label>
+
+<div class="setting-grid" style="margin-bottom:8px;">
+  <span>정렬버튼</span>
+<label class="switch">
+    <input type="checkbox" id="alignCheckbox" onchange="toggleAlignButtons(this.checked)">
+    <span class="slider"></span>
+  </label>
+</div>
+
+<div class="setting-grid" style="margin-bottom:8px;">
+  <span>겹침방지</span>
+  <label class="switch">
+    <input type="checkbox" id="overlapCheckbox" onchange="toggleOverlapPrevention(this.checked)">
+    <span class="slider"></span>
+  </label>
+</div>
+
           <div class="data-btn-container" style="margin-top: 5px !important;">
             <button class="btn-full" style="background:#f39c12;" onclick="takeScreenshot()">📸 스크린샷</button>
             <button class="btn-full" style="background:#2c3e50;" onclick="saveData()">💾 저 장</button>
@@ -336,7 +490,7 @@ input[type="range"] {
           el.style.zIndex = 1000;
         }
       };
-      const onMove = (e) => {
+const onMove = (e) => {
         const touches = e.changedTouches || [e];
         for (const t of touches) {
           const id = t.identifier !== undefined ? t.identifier : 'mouse';
@@ -345,8 +499,13 @@ input[type="range"] {
             const fr = field.getBoundingClientRect();
             let x = ((t.clientX - fr.left - d.offsetX) / fr.width) * 100;
             let y = ((t.clientY - fr.top - d.offsetY) / fr.height) * 100;
+            
+            // 1. 선수의 위치를 먼저 업데이트합니다.
             el.style.left = Math.max(0, Math.min(100, x)) + "%";
             el.style.top = Math.max(0, Math.min(100, y)) + "%";
+
+            // 2. [여기에 추가!] 선수가 움직일 때마다 다른 선수를 밀어내는지 체크합니다.
+            preventOverlap(el); 
           }
         }
         if (activeDrags.size > 0 && e.cancelable) e.preventDefault();
@@ -558,7 +717,7 @@ function updateBallSize(v) {
       const pos = forms[f]; if(!pos) return;
       ps.forEach((p, i)=>{ if(pos[i]){ let x=t==='blue'?100-pos[i][0]:pos[i][0]; p.style.left=x+"%"; p.style.top=pos[i][1]+"%"; }});
     }
-    function toggleMenu() { const col = bottomControls.classList.toggle('collapsed'); document.getElementById('toggleMenuBtn').innerText = col ? "▼ 설 정 ▼" : "▲ 설 정 ▲"; }
+    function toggleMenu() { const col = bottomControls.classList.toggle('collapsed'); document.getElementById('toggleMenuBtn').innerText = col ? "▼ option ▼" : "▲ option ▲"; }
     function updateMenuOpacity(v) { bottomControls.style.opacity = v / 100; }
     function resetAll() { if(confirm("초기화하시겠습니까?")) location.reload(); }
     function moveOrder(btn, dir) {
@@ -611,7 +770,145 @@ document.addEventListener('touchend', function (e) {
   lastTouchEnd = now;
 }, false);
 
+function toggleAlignButtons(show) {
+  const redBtn = document.getElementById('redAlignBtn');
+  const blueBtn = document.getElementById('blueAlignBtn');
+  
+  if (show) {
+    // ON일 때: hidden 클래스 제거 (보임)
+    redBtn.classList.remove('hidden');
+    blueBtn.classList.remove('hidden');
+  } else {
+    // OFF일 때: hidden 클래스 추가 (숨김)
+    redBtn.classList.add('hidden');
+    blueBtn.classList.add('hidden');
+  }
+}
+function alignPlayersSide(team) {
+  const players = document.querySelectorAll(`.player[data-team="${team}"]`);
+  if (players.length === 0) return;
+
+  const maxInRow = 10; // 한 줄에 최대 10명
+  const gapY = 8;      // 세로 간격 (%)
+  const gapX = 8;      // 가로(줄 간격) (%)
+
+  players.forEach((p, i) => {
+    const row = i % maxInRow;           
+    const column = Math.floor(i / maxInRow); 
+
+    // --- 중앙 정렬 핵심 로직 ---
+    // 현재 줄(column)에 있는 선수들 중 이 선수가 속한 줄의 실제 인원수 계산
+    const totalInThisColumn = Math.min(maxInRow, players.length - (column * maxInRow));
+    
+    // 이 줄의 전체 높이를 계산해서 중앙에서부터 시작하게 만듦
+    const startY = 50 - ((totalInThisColumn - 1) * gapY) / 2;
+
+    let x, y;
+    
+    // 계산된 중앙 시작점(startY) 기준으로 배치
+    y = startY + (row * gapY);
+
+    if (team === 'red') {
+      x = 5 + (column * gapX); // 레드는 왼쪽 사이드라인 기준
+    } else {
+      x = 95 - (column * gapX); // 블루는 오른쪽 사이드라인 기준
+    }
+
+    p.style.left = x + "%";
+    p.style.top = y + "%";
+  });
+}
+
+// --- 정렬 버튼 제어 로직 ---
+let isAlignVisible = false; // 현재 정렬 버튼이 보이는지 상태 저장
+
+function handleAlignSwitch() {
+  isAlignVisible = !isAlignVisible; // 누를 때마다 true <-> false 반전
+  const btn = document.getElementById('alignToggleBtn');
+  
+  if (isAlignVisible) {
+    btn.innerText = "ON";
+    btn.style.background = "#27ae60"; // 활성화 시 초록색
+    toggleAlignButtons(true);
+  } else {
+    btn.innerText = "OFF";
+    btn.style.background = "#bdc3c7"; // 비활성화 시 회색
+    toggleAlignButtons(false);
+  }
+}
+
+// --- 겹침 방지 기능 제어 ---
+let isOverlapPreventionActive = false; 
+
+function toggleOverlapPrevention(show) {
+  isOverlapPreventionActive = show;
+}
+
+function preventOverlap(activeEl) {
+  if (!isOverlapPreventionActive) return;
+
+  const draggables = document.querySelectorAll('.player'); // 선수들만 대상으로 충돌 체크
+  const activeRect = activeEl.getBoundingClientRect();
+  const radius = activeRect.width / 2;
+
+  draggables.forEach(target => {
+    if (target === activeEl) return;
+
+    const targetRect = target.getBoundingClientRect();
+    const dx = (activeRect.left + radius) - (targetRect.left + radius);
+    const dy = (activeRect.top + radius) - (targetRect.top + radius);
+    const distance = Math.sqrt(dx * dx + dy * dy);
+
+    // 선수 지름의 90% 정도 거리 안에 들어오면 밀어냄
+    const minDistance = activeRect.width * 0.9; 
+    
+    if (distance < minDistance && distance > 0) {
+      const angle = Math.atan2(dy, dx);
+      const push = (minDistance - distance);
+      const pushX = Math.cos(angle) * push;
+      const pushY = Math.sin(angle) * push;
+
+      const fr = field.getBoundingClientRect();
+      // 밀려나는 선수의 새로운 좌표 (%) 계산
+      let newX = ((targetRect.left - pushX - fr.left + (targetRect.width/2)) / fr.width) * 100;
+      let newY = ((targetRect.top - pushY - fr.top + (targetRect.height/2)) / fr.height) * 100;
+
+      target.style.left = Math.max(0, Math.min(100, newX)) + "%";
+      target.style.top = Math.max(0, Math.min(100, newY)) + "%";
+    }
+  });
+}
+
+// 팀별 현재 모양 상태 저장 (기본값 circle)
+let teamShapes = { red: 'circle', blue: 'circle' };
+
+function changeShape(team, shape) {
+    // 1. 상태 업데이트
+    teamShapes[team] = shape;
+
+    // 2. 버튼 활성화 표시 (선택된 버튼 강조)
+    const btnGroup = event.currentTarget.parentElement;
+    btnGroup.querySelectorAll('.shape-btn').forEach(btn => btn.classList.remove('active'));
+    event.currentTarget.classList.add('active');
+
+    // 3. 필드 위 선수들 모양 즉시 변경
+    updateTeamStyle(team);
+}
+
+function updateTeamStyle(team) {
+    const players = document.querySelectorAll(`.player[data-team="${team}"]`);
+    const shape = teamShapes[team]; // 현재 선택된 모양 (circle, square, triangle, jersey)
+
+    players.forEach(player => {
+        // 기존 모양 클래스 모두 제거
+        player.classList.remove('shape-circle', 'shape-square', 'shape-triangle', 'shape-jersey');
+        // 새로운 모양 클래스 추가
+        player.classList.add('shape-' + shape);
+    });
+}
+
 
   </script>
 </body>
 </html>
+
