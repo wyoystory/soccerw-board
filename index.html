@@ -780,6 +780,20 @@ if (!dragSrcEl) return;
     // 같은 팀 리스트 내에서 다른 아이템 위로 갔을 때 순서 교체
     if (overItem && overItem !== dragSrcEl && overItem.parentNode === item.parentNode) {
       const list = item.parentNode;
+
+const p1 = dragSrcEl.playerEl; // 현재 내가 잡고 있는 선수
+        const p2 = overItem.playerEl;  // 내 손가락 아래에 있는 선수
+
+        if (p1 && p2) {
+            const tempLeft = p1.style.left;
+            const tempTop = p1.style.top;
+
+            p1.style.left = p2.style.left;
+            p1.style.top = p2.style.top;
+
+            p2.style.left = tempLeft;
+            p2.style.top = tempTop;
+
       const allItems = [...list.querySelectorAll('.list-item')];
       const currIdx = allItems.indexOf(dragSrcEl);
       const overIdx = allItems.indexOf(overItem);
@@ -805,14 +819,10 @@ allItems.forEach((it, idx) => {
         }
       });
 
-      // 2. [핵심] 필드 위 선수 위치 업데이트
-      // 마우스 드래그가 끝날 때 실행되는 '정렬 및 배치' 함수를 여기서도 호출해야 합니다.
-      if (typeof updateAlignButtons === 'function') {
-          updateAlignButtons(); 
-      } else if (typeof renderPlayers === 'function') {
-          // 혹시 함수 이름이 다르다면 실제 배치 함수 이름을 적어주세요.
-          renderPlayers();
-      }
+// [추가] 알림창 없는 자동 저장 실행
+        if (typeof autoSaveToLocal === 'function') {
+            autoSaveToLocal();
+        }
     }
 
     dragSrcEl = null;
