@@ -216,9 +216,9 @@ overflow: hidden; /* 삐져나감 방지 */
 }
 
 .drag-handle {
-padding: 10px;
+padding: 10px 25px;
     cursor: grab;
-    touch-action: none; /* 오직 여기에서만 브라우저 스크롤을 막아야 드래그가 됨 */
+    touch-action: none !important;
     z-index: 10;
 }
 
@@ -228,7 +228,7 @@ padding: 10px;
       padding-right: 10px; /* 여기에 추가! */
       overscroll-behavior: contain; /* 모바일 새로고침 방지 */
       -webkit-overflow-scrolling: touch;
-      touch-action: pan-y;
+      touch-action: pan-y !important;
   }
 
 .list-item {
@@ -237,7 +237,8 @@ padding: 10px;
     background: white;
     margin-bottom: 4px;
     border-radius: 4px;
-    touch-action: pan-y; /* 세로 스크롤 허용 */
+    touch-action: pan-y !important;
+    user-select: none;
 }
 
     .btn-small { padding: 3px 5px; font-size: 10px; border: 1px solid #ddd; background: #fff; border-radius: 3px; cursor: pointer; }
@@ -778,24 +779,22 @@ const handle = item.querySelector('.drag-handle');
   handle.addEventListener('touchstart', function(e) {
     dragSrcEl = item; 
     item.style.opacity = '0.4';
+    if (e.cancelable) e.stopPropagation();
   }, { passive: true });
 
 item.addEventListener('touchmove', function(e) {
-if (!dragSrcEl) return;
+if (!dragSrcEl || dragSrcEl !== item) return;
     
-    // 새로고침 및 스크롤 방지
-    e.preventDefault();
+if (e.cancelable) e.preventDefault();
 
-// 현재 손가락 위치에 있는 다른 선수(아이템) 찾기
     const touch = e.touches[0];
     const target = document.elementFromPoint(touch.clientX, touch.clientY);
     const overItem = target ? target.closest('.list-item') : null;
 
-    // 같은 팀 리스트 내에서 다른 아이템 위로 갔을 때 순서 교체
     if (overItem && overItem !== dragSrcEl && overItem.parentNode === item.parentNode) {
       const list = item.parentNode;
 
-const p1 = dragSrcEl.playerEl; // 현재 내가 잡고 있는 선수
+        const p1 = dragSrcEl.playerEl; // 현재 내가 잡고 있는 선수
         const p2 = overItem.playerEl;  // 내 손가락 아래에 있는 선수
 
         if (p1 && p2) {
@@ -826,12 +825,8 @@ const p1 = dragSrcEl.playerEl; // 현재 내가 잡고 있는 선수
       dragSrcEl.style.opacity = '1';
       
       const list = item.parentNode; 
-      const allItems = list.querySelectorAll('.list-item');
-      
-allItems.forEach((it, idx) => {
-        if (it.playerEl) {
-          it.playerEl.style.zIndex = 10 + idx; 
-        }
+list.querySelectorAll('.list-item').forEach((it, idx) => {
+            if (it.playerEl) it.playerEl.style.zIndex = 10 + idx;
       });
 
 // [추가] 알림창 없는 자동 저장 실행
