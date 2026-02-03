@@ -67,6 +67,21 @@ padding: 5px; /* 화면 끝에 너무 붙지 않게 살짝 여유 */
 touch-action: none; 
  }
 
+#drawingCanvas {
+    position: absolute; /* 필드 위에 붕 띄움 */
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    z-index: 150;       /* 선수들보다 높은 층 */
+    pointer-events: none; 
+
+}
+
+.pen-active #drawingCanvas {
+    pointer-events: auto;
+}
+
 /* 배경 이미지 레이어 */
 #field-bg {
   position: absolute;
@@ -141,7 +156,7 @@ overflow: hidden;
 
     .card-header { 
 display: flex; 
-justify-content: space-between; 
+justify-content: center; 
 align-items: center; 
 margin-bottom: 8px; 
 border-bottom: 2px solid #eee; 
@@ -338,18 +353,90 @@ background: #e0e0e0;
     cursor: grabbing;
 }
 
+/* 펜 툴바 컨테이너 스타일 */
+.pen-toolbar-container {
+    position: fixed;
+    top: 60px; /* 옵션 버튼 아래쪽에 위치 */
+    left: 50%;
+    transform: translateX(-50%);
+    z-index: 2000;
+    background: rgba(255, 255, 255, 0.95);
+    padding: 8px 15px;
+    border-radius: 20px;
+    box-shadow: 0 4px 15px rgba(0,0,0,0.2);
+    display: flex;
+    align-items: center;
+}
+
+.pen-btn {
+    border: none;
+    padding: 6px 12px;
+    border-radius: 10px;
+    font-weight: bold;
+    cursor: pointer;
+    background: #444;
+    color: white;
+    font-size: 12px;
+    transition: 0.2s;
+}
+
+.clear-btn { background: #95a5a6; }
+.clear-btn:hover { background: #7f8c8d; }
+
+.pen-width-wrapper {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    margin: 0 10px;
+    gap: 2px;
+}
+
+#penColorPicker {
+    width: 30px;
+    height: 30px;
+    border: none;
+    background: none;
+    cursor: pointer;
+}
+
+#penWidth { width: 80px; cursor: pointer; }
+
   </style>
 </head>
 <body>
+
 <div class="top-toolbar">
   <div class="side-box left" style="display: flex; gap: 5px;">
+<div id="penToolbar" style="display:none; align-items:center; gap:12px; background: rgba(255, 255, 255, 0.9); padding: 1px 6px; border-radius: 30px; border: 1px solid #e0e0e0; box-shadow: 0 4px 12px rgba(0,0,0,0.12); margin-right: 15px;">
+    
+    <div style="display:flex; align-items:center; position: relative; gap: 10px;">
+    <button id="penToggleBtn" onclick="togglePenMode()" 
+            style="padding:5px 12px; border-radius:20px; border:none; background:#ffffff; color:white; font-size:14px; font-weight:bold; cursor:pointer; transition: all 0.3s ease; box-shadow: 0 2px 4px rgba(0,0,0,0.2);">
+        🖍️
+    </button>
+
+        <input type="color" id="penColorPicker" value="#000000" onchange="changePenColor(this.value)" 
+               style="width:35px; height:30px; border:none; cursor:pointer; background:none; padding:0; border-radius: 50%;">
+    </div>
+
+    <div style="display:flex; align-items:center; gap:1px;">
+        <span style="font-size:11px; font-weight:600; color:#666;">➰</span>
+        <input type="range" id="penWidth" min="1" max="15" value="3" oninput="updateLineWidth(this.value)" 
+               style="width:50px; cursor:pointer; accent-color: #444;">
+    </div>
+
+    <button onclick="clearCanvas()" 
+            style="padding:5px 10px; border-radius:20px; border:none; background:#000000; color:#333; font-size:14px; font-weight:bold; cursor:pointer; transition: all 0.2s;">
+        ❌
+    </button>
+</div>
     <button id="redAlignBtn" class="align-btn red-btns hidden" style="background: #000; color: #e74c3c; font-weight: bold;" onclick="alignPlayers('red', false)">◀ 정렬</button>               
     
     <button class="align-btn red-btns hidden" style="background: #000; color: #e74c3c; font-weight: bold;" onclick="alignPlayers('red', true)">정렬 ▶</button>
   </div>
 
   <div class="center-box">
-    <button id="toggleMenuBtn" onclick="toggleMenu()">▼ option ▼</button>
+    <button id="toggleMenuBtn" onclick="toggleMenu()"class="menu-btn" style="font-size: 20px;">▼ ⚙️ ▼</button>
   </div>
 
   <div class="side-box right" style="display: flex; gap: 5px;">
@@ -359,23 +446,39 @@ background: #e0e0e0;
   </div>
 </div>
   <div id="field-container">
-    <div id="field">
+
       <div id="field-bg"></div>
-      <div id="field-lines"></div>
+    <div id="field">
+      <div id="field-lines"><canvas id="drawingCanvas"></canvas></div>
       <div class="ball draggable" id="ball" style="left:50%; top:50%;"></div>
     </div>
 
     <div id="menuOverlay">
       <div id="bottomControls" class="collapsed">
         <div class="card">
-          <div class="card-header"><h3 style="color:var(--red-color); margin:0; font-size:14px;">RED</h3>
-            <select class="formation-select" onchange="applyFormation('red', this.value)">
-              <option value="">포메이션</option><option value="4-4-2">4-4-2</option><option value="4-3-3">4-3-3</option><option value="3-5-2">3-5-2</option>
-            </select>
-          </div>
+<div class="card-header" style="display: flex; align-items: center; justify-content: space-between; padding: 2px 5px; min-height: 35px;">
+    <div style="flex: 1;"></div>
+
+    <h3 style="color:var(--red-color); margin:0; font-size:14px; text-align:center; flex: 1; white-space: nowrap;">RED</h3>
+
+    <div style="flex: 1; display: flex; justify-content: flex-end;">
+        <select class="formation-select" 
+                onchange="applyFormation('red', this.value)"
+style="padding: 2px 5px; border-radius: 12px; border: 1px solid #ddd; font-size: 11px; background: #f9f9f9; cursor: pointer; outline: none; 
+                       width: 90px; 
+                       min-width: 90px; 
+                       text-align: center;">
+            <option value="">포메이션</option>
+            <option value="4-4-2">4 - 4 - 2</option>
+            <option value="4-3-3">4 - 3 - 3</option>
+            <option value="3-5-2">3 - 5 - 2</option>
+        </select>
+    </div>
+</div>
+
 <div class="input-row">
   <input type="text" id="redInput" placeholder="선수명" onkeypress="if(event.key==='Enter')addPlayer('red')">
-  <input type="color" id="redColorPicker" value="#ffffff" style="width:30px; height:24px; border:none; padding:0; background:none; cursor:pointer;" onchange="changeTeamNameColor('red', this.value)">
+  <input type="color" id="redColorPicker" value="#ffffff" style="width:30px; height:30px; border:none; padding:0; background:none; cursor:pointer;" onchange="changeTeamNameColor('red', this.value)">
   <button class="btn-add" style="background:var(--red-color);" onclick="addPlayer('red')">추가</button>
 </div>
 
@@ -409,14 +512,28 @@ background: #e0e0e0;
         </div>
 
         <div class="card">
-          <div class="card-header"><h3 style="color:var(--blue-color); margin:0; font-size:14px;">BLUE</h3>
-            <select class="formation-select" onchange="applyFormation('blue', this.value)">
-              <option value="">포메이션</option><option value="4-4-2">4-4-2</option><option value="4-3-3">4-3-3</option><option value="3-5-2">3-5-2</option>
-            </select>
-          </div>
+<div class="card-header" style="display: flex; align-items: center; justify-content: space-between; padding: 2px 5px; min-height: 35px;">
+    <div style="flex: 1;"></div>
+
+    <h3 style="color:var(--blue-color); margin:0; font-size:14px; text-align:center; flex: 1; white-space: nowrap;">BLUE</h3>
+
+    <div style="flex: 1; display: flex; justify-content: flex-end;">
+        <select class="formation-select" 
+                onchange="applyFormation('BLUE', this.value)"
+style="padding: 2px 5px; border-radius: 12px; border: 1px solid #ddd; font-size: 11px; background: #f9f9f9; cursor: pointer; outline: none; 
+                       width: 90px; 
+                       min-width: 90px; 
+                       text-align: center;">
+            <option value="">포메이션</option>
+            <option value="4-4-2">4 - 4 - 2</option>
+            <option value="4-3-3">4 - 3 - 3</option>
+            <option value="3-5-2">3 - 5 - 2</option>
+        </select>
+    </div>
+</div>
 <div class="input-row">
   <input type="text" id="blueInput" placeholder="선수명" onkeypress="if(event.key==='Enter')addPlayer('blue')">
-  <input type="color" id="blueColorPicker" value="#ffffff" style="width:30px; height:24px; border:none; padding:0; background:none; cursor:pointer;" onchange="changeTeamNameColor('blue', this.value)">
+  <input type="color" id="blueColorPicker" value="#ffffff" style="width:30px; height:30px; border:none; padding:0; background:none; cursor:pointer;" onchange="changeTeamNameColor('blue', this.value)">
   <button class="btn-add" style="background:var(--blue-color);" onclick="addPlayer('blue')">추가</button>
 </div>
 
@@ -450,7 +567,7 @@ background: #e0e0e0;
         </div>
 
         <div class="card">
-          <h3 style="margin:0 0 8px 0; font-size:14px; color:#555;">SETTING</h3>
+          <h3 style="margin:0 0 8px 0; font-size:14px; text-align:center; color:#555;">SETTING</h3>
           <div class="setting-grid" style="margin-bottom:8px;">
      <span>투명도</span>
      <input type="range" min="10" max="100" value="98" oninput="updateMenuOpacity(this.value)"></div>
@@ -470,6 +587,14 @@ background: #e0e0e0;
             <div class="setting-grid"><span>경기장</span><div style="font-size:9px; color:#999; overflow:hidden; white-space:nowrap;" id="fieldNameDisplay">지정 안됨</div></div>
             <input type="file" id="fieldInput" style="display:none;" onchange="handleImageUpload(event, 'field')">
           </label>
+
+<div class="setting-grid" style="margin-bottom:8px;">
+  <span>펜 도구</span>
+  <label class="switch">
+    <input type="checkbox" id="penModeCheckbox" onchange="togglePenToolbar(this.checked)">
+    <span class="slider"></span>
+  </label>
+</div>
 
 <div class="setting-grid" style="margin-bottom:8px;">
   <span>정렬버튼</span>
@@ -612,7 +737,8 @@ updateAlignButtons();
   list.appendChild(item); 
   if(!n) input.value = "";
   updateAlignButtons();
-} // 함수 끝
+} 
+
 
     function saveData() {
       const fn = prompt("파일명 입력:", currentFileName.replace(".json", ""));
@@ -677,9 +803,8 @@ function handleDrop(e) {
         p2.style.left = tempLeft;
         p2.style.top = tempTop;
       }
-      // ----------------------------------------------
 
-      // 1. 리스트 UI 순서 변경
+
       const allItemsArray = [...list.querySelectorAll('.list-item')];
       if (allItemsArray.indexOf(dragSrcEl) < allItemsArray.indexOf(this)) {
         list.insertBefore(dragSrcEl, this.nextSibling);
@@ -887,7 +1012,7 @@ function updateBallSize(v) {
       const pos = forms[f]; if(!pos) return;
       ps.forEach((p, i)=>{ if(pos[i]){ let x=t==='blue'?100-pos[i][0]:pos[i][0]; p.style.left=x+"%"; p.style.top=pos[i][1]+"%"; }});
     }
-    function toggleMenu() { const col = bottomControls.classList.toggle('collapsed'); document.getElementById('toggleMenuBtn').innerText = col ? "▼ option ▼" : "▲ option ▲"; }
+    function toggleMenu() { const col = bottomControls.classList.toggle('collapsed'); document.getElementById('toggleMenuBtn').innerText = col ?  "▼ ⚙️ ▼" : "▲ ⚙️ ▲"; }
     function updateMenuOpacity(v) { bottomControls.style.opacity = v / 100; }
     function resetAll() { if(confirm("초기화하시겠습니까?")) location.reload(); }
     function moveOrder(btn, dir) {
@@ -1086,6 +1211,189 @@ function updateTeamStyle(team) {
   
   // 3. 저장
   autoSaveToLocal();
+}
+
+function togglePenToolbar(isVisible) {
+    const penToolbar = document.getElementById('penToolbar');
+    if (!penToolbar) return;
+    penToolbar.style.display = isVisible ? 'flex' : 'none';
+    if (!isVisible && penActive) togglePenMode();
+}
+
+
+let penActive = false;
+const canvas = document.getElementById('drawingCanvas');
+const ctx = canvas.getContext('2d');
+
+function togglePenMode() {
+    const btn = document.getElementById('penToggleBtn');
+    const container = document.getElementById('field-container');
+    
+    penActive = !penActive;
+
+    if (penActive) {
+        btn.innerHTML = "🖍️";
+btn.style.fontSize = "15px";
+        btn.style.background = "#e74c3c";
+        
+        canvas.width = container.offsetWidth;
+        canvas.height = container.offsetHeight;
+    } else {
+        btn.innerHTML = "🖍️";
+btn.style.fontSize = "15px";
+        btn.style.background = "#ffffff";
+    }
+}
+
+function saveState() {
+    undoStack.push(canvas.toDataURL());
+    if (undoStack.length > 20) undoStack.shift(); // 최대 20개까지 저장
+    redoStack = []; // 새 그림을 그리면 앞으로가기 기록 삭제
+}
+
+// 뒤로가기
+function undo() {
+    if (undoStack.length === 0) {
+        ctx.clearRect(0, 0, canvas.width, canvas.height);
+        return;
+    }
+    redoStack.push(canvas.toDataURL());
+    let previous = undoStack.pop();
+    renderImage(previous);
+}
+
+// 앞으로가기
+function redo() {
+    if (redoStack.length === 0) return;
+    undoStack.push(canvas.toDataURL());
+    let next = redoStack.pop();
+    renderImage(next);
+}
+
+function renderImage(src) {
+    let img = new Image();
+    img.src = src;
+    img.onload = () => {
+        ctx.clearRect(0, 0, canvas.width, canvas.height);
+        ctx.drawImage(img, 0, 0);
+    };
+}
+
+// 기존 stopDrawing 함수를 아래처럼 수정 (저장 로직 추가)
+function stopDrawing() { 
+    if(isDrawing) saveState(); 
+    isDrawing = false; 
+}
+
+// --- 펜 기능 핵심 로직 ---
+
+let isDrawing = false;
+
+function updateLineWidth(v) { if(ctx) ctx.lineWidth = v; }
+function changePenColor(v) { if(ctx) ctx.strokeStyle = v; }
+
+function clearCanvas()  {
+        ctx.clearRect(0, 0, canvas.width, canvas.height); 
+}
+
+function getCanvasPos(e) {
+    const rect = canvas.getBoundingClientRect();
+    const clientX = e.clientX || (e.touches && e.touches[0].clientX);
+    const clientY = e.clientY || (e.touches && e.touches[0].clientY);
+    const scaleX = canvas.width / rect.width;
+    const scaleY = canvas.height / rect.height;
+    return { x: (clientX - rect.left) * scaleX, y: (clientY - rect.top) * scaleY };
+}
+
+window.addEventListener('mousedown', (e) => {
+    if (!penActive) return;
+    // 버튼이나 입력창을 누를 때는 그리기 방지
+    if (e.target.closest('#penToolbar') || e.target.closest('#bottomControls')) return;
+
+    isDrawing = true;
+    const {x, y} = getCanvasPos(e);
+    ctx.beginPath();
+    ctx.moveTo(x, y);
+    
+    ctx.lineCap = 'round';
+    ctx.lineJoin = 'round';
+    ctx.lineWidth = document.getElementById('penWidth').value;
+    ctx.strokeStyle = document.getElementById('penColorPicker').value;
+});
+
+window.addEventListener('mousemove', (e) => {
+    if (!isDrawing || !penActive) return; // 클릭 상태(isDrawing)가 true일 때만 실행
+    const {x, y} = getCanvasPos(e);
+    ctx.lineTo(x, y);
+    ctx.stroke();
+});
+
+window.addEventListener('mouseup', () => {
+    isDrawing = false; // 마우스를 떼면 더 이상 그려지지 않음
+});
+
+// 터치 모바일 지원
+window.addEventListener('touchstart', (e) => {
+    if (!penActive || e.target.closest('#penToolbar')) return;
+    isDrawing = true;
+    const {x, y} = getCanvasPos(e);
+    ctx.beginPath();
+    ctx.moveTo(x, y);
+}, {passive: false});
+
+window.addEventListener('touchmove', (e) => {
+    if (!isDrawing || !penActive) return;
+    const {x, y} = getCanvasPos(e);
+    ctx.lineTo(x, y);
+    ctx.stroke();
+    if(e.cancelable) e.preventDefault();
+}, {passive: false});
+
+window.addEventListener('touchend', () => { isDrawing = false; });
+
+
+let points = [];
+
+function startDrawing(e) {
+    if (!penActive) return;
+    if (e.target.closest('#penToolbar') || e.target.closest('#bottomControls')) return;
+
+    isDrawing = true;
+    const pos = getCanvasPos(e);
+    points = [pos]; // 시작점 저장
+    
+    ctx.beginPath();
+    ctx.moveTo(pos.x, pos.y);
+    
+    // 펜 스타일 설정
+    ctx.lineCap = 'round';
+    ctx.lineJoin = 'round';
+    ctx.lineWidth = document.getElementById('penWidth').value;
+    ctx.strokeStyle = document.getElementById('penColorPicker').value;
+}
+
+function draw(e) {
+    if (!isDrawing || !penActive) return;
+    
+    const pos = getCanvasPos(e);
+    points.push(pos);
+
+    if (points.length > 2) {
+        // 마지막 세 점을 이용해 부드러운 곡선(베지어 곡선) 계산
+        const lastTwoPoints = points.slice(-2);
+        const controlPoint = lastTwoPoints[0];
+        const endPoint = {
+            x: (lastTwoPoints[0].x + lastTwoPoints[1].x) / 2,
+            y: (lastTwoPoints[0].y + lastTwoPoints[1].y) / 2
+        };
+
+        ctx.quadraticCurveTo(controlPoint.x, controlPoint.y, endPoint.x, endPoint.y);
+        ctx.stroke();
+    }
+}
+function stopDrawing() { 
+    if(isDrawing && typeof saveState === 'function') saveState(); 
+    isDrawing = false; 
 }
 
   </script>
