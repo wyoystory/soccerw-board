@@ -734,6 +734,13 @@ updateAlignButtons();
   item.ondragover = handleDragOver;
   item.ondrop = handleDrop;
   item.ondragend = handleDragEnd;
+item.addEventListener('touchmove', function(e) {
+    if (dragSrcEl) { 
+        // 드래그 중에는 화면이 움직이거나 새로고침되는 것을 절대 허용 안 함
+        e.preventDefault();
+}
+  }, { passive: false });
+
 
   item.innerHTML = `
     <div class="drag-handle" style="cursor: grab; padding: 1px 10px; margin-left: -8px; color: #888; font-size: 15px; display: flex; align-items: center; justify-content: center;">☰</div>
