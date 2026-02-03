@@ -532,7 +532,7 @@ style="padding: 2px 5px; border-radius: 12px; border: 1px solid #ddd; font-size:
 
           <div class="setting-grid"><span>선수크기</span><input type="range" id="redPlayerSize" min="30" max="100" value="55" oninput="updateTeamStyle('red')"></div>
           <div class="setting-grid"><span>글자크기</span><input type="range" id="redFontSize" min="10" max="24" value="12" oninput="updateTeamStyle('red')"></div>
-          <div id="redList" style="max-height:200px; overflow-y:auto; margin-top:5px;"></div>
+          <div id="redList" style="max-height:380px; overflow-y:auto; margin-top:5px;"></div>
         </div>
 
         <div class="card">
@@ -587,7 +587,7 @@ style="padding: 2px 5px; border-radius: 12px; border: 1px solid #ddd; font-size:
 
           <div class="setting-grid"><span>선수크기</span><input type="range" id="bluePlayerSize" min="30" max="100" value="55" oninput="updateTeamStyle('blue')"></div>
           <div class="setting-grid"><span>글자크기</span><input type="range" id="blueFontSize" min="10" max="24" value="12" oninput="updateTeamStyle('blue')"></div>
-          <div id="blueList" style="max-height:200px; overflow-y:auto; margin-top:5px;"></div>
+          <div id="blueList" style="max-height:380px; overflow-y:auto; margin-top:5px;"></div>
         </div>
 
         <div class="card">
@@ -754,7 +754,7 @@ updateAlignButtons();
   item.dataset.team = t;
 
   item.innerHTML = `
-    <div class="drag-handle" style="cursor: grab; padding: 1px 10px; margin-left: -8px; color: #888; font-size: 15px; display: flex; align-items: center; justify-content: center;">☰</div>
+    <div class="drag-handle" style="cursor: grab; padding: 1px 25px; margin-left: -15px; color: #888; font-size: 20px; display: flex; align-items: center; justify-content: center;">☰</div>
     <span style="flex:1; font-weight:bold; overflow:hidden; white-space:nowrap; text-overflow:ellipsis; pointer-events: none;">${name}</span>
     <div style="display:flex; gap:3px; padding-right: 5px;">
       <button class="btn-small" onclick="editPlayer(this)">수정</button>
