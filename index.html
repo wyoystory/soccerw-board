@@ -237,7 +237,7 @@ padding: 10px;
     background: white;
     margin-bottom: 4px;
     border-radius: 4px;
-    /* 전체 아이템에는 touch-action을 주지 마세요! */
+    touch-action: pan-y; /* 세로 스크롤 허용 */
 }
 
     .btn-small { padding: 3px 5px; font-size: 10px; border: 1px solid #ddd; background: #fff; border-radius: 3px; cursor: pointer; }
@@ -761,7 +761,15 @@ updateAlignButtons();
       <button class="btn-small" style="color:red;" onclick="removePlayer(this)">삭제</button>
     </div>`;
 
-  item.ondragstart = handleDragStart;
+  item.ondragstart = (e) => {
+    // [핵심] 클릭된 대상이 'drag-handle'이 아니면 드래그 취소
+    if (!e.target.closest('.drag-handle')) {
+        e.preventDefault();
+        return false;
+    }
+    handleDragStart.call(item, e);
+};
+
   item.ondragover = handleDragOver;
   item.ondrop = handleDrop;
   item.ondragend = handleDragEnd;
