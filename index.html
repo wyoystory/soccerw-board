@@ -792,7 +792,6 @@ if (!dragSrcEl) return;
     }
   }, { passive: false });
 
-// 3. 터치 종료 (중괄호와 소괄호를 정확히 확인하세요!)
   item.addEventListener('touchend', function(e) {
     if (dragSrcEl) {
       dragSrcEl.style.opacity = '1';
@@ -800,13 +799,22 @@ if (!dragSrcEl) return;
       const list = item.parentNode; 
       const allItems = list.querySelectorAll('.list-item');
       
-      allItems.forEach((it, idx) => {
-        if (it.playerEl) it.playerEl.style.zIndex = 10 + idx; 
+allItems.forEach((it, idx) => {
+        if (it.playerEl) {
+          it.playerEl.style.zIndex = 10 + idx; 
+        }
       });
-if (typeof updateAlignButtons === 'function') {
+
+      // 2. [핵심] 필드 위 선수 위치 업데이트
+      // 마우스 드래그가 끝날 때 실행되는 '정렬 및 배치' 함수를 여기서도 호출해야 합니다.
+      if (typeof updateAlignButtons === 'function') {
           updateAlignButtons(); 
+      } else if (typeof renderPlayers === 'function') {
+          // 혹시 함수 이름이 다르다면 실제 배치 함수 이름을 적어주세요.
+          renderPlayers();
       }
-       }
+    }
+
     dragSrcEl = null;
   }, { passive: true });
 
