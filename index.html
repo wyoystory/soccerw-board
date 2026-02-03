@@ -803,6 +803,9 @@ if (!dragSrcEl) return;
       allItems.forEach((it, idx) => {
         if (it.playerEl) it.playerEl.style.zIndex = 10 + idx; 
       });
+if (typeof updateAlignButtons === 'function') {
+          updateAlignButtons(); 
+      }
        }
     dragSrcEl = null;
   }, { passive: true });
