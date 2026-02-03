@@ -657,15 +657,21 @@ style="padding: 2px 5px; border-radius: 12px; border: 1px solid #ddd; font-size:
     function makeDraggable(el) {
       const onStart = (e) => {
         if (e.target.closest('#bottomControls')) return;
-        const touches = e.changedTouches || [e];
-        for (const t of touches) {
-          const id = t.identifier !== undefined ? t.identifier : 'mouse';
-          const rect = el.getBoundingClientRect();
-          activeDrags.set(id, { target: el, offsetX: t.clientX - (rect.left + rect.width / 2), offsetY: t.clientY - (rect.top + rect.height / 2) });
-          el.style.transition = "none";
-          el.style.zIndex = 1000;
-        }
-      };
+
+const touches = e.changedTouches || [e];
+    for (const t of touches) {
+      const id = t.identifier !== undefined ? t.identifier : 'mouse';
+      const rect = el.getBoundingClientRect();
+      activeDrags.set(id, { 
+        target: el, 
+        offsetX: t.clientX - (rect.left + rect.width / 2), 
+        offsetY: t.clientY - (rect.top + rect.height / 2) 
+      });
+      el.style.transition = "none";
+      el.style.zIndex = 1000;
+    }
+  };
+
 const onMove = (e) => {
         const touches = e.changedTouches || [e];
         for (const t of touches) {
