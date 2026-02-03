@@ -216,41 +216,30 @@ overflow: hidden; /* 삐져나감 방지 */
 }
 
 .drag-handle {
+padding: 10px;
     cursor: grab;
-    padding: 10px 15px;      /* 터치 영역 확보 */
-    margin-left: -8px;
-    color: #888;
-    font-size: 18px;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    
-    /* 핵심: 모바일 스크롤 간섭 차단 */
-    touch-action: none; 
-    position: relative;
-    z-index: 2000;           /* 스크롤바보다 위로 올림 */
-    user-select: none;       /* 텍스트 선택 방지 */
+    touch-action: none; /* 오직 여기에서만 브라우저 스크롤을 막아야 드래그가 됨 */
+    z-index: 10;
 }
 
 #redList, #blueList {
       max-height: 200px; 
-      overflow-y: auto;
+      overflow-y: auto !important;
       padding-right: 10px; /* 여기에 추가! */
       overscroll-behavior: contain; /* 모바일 새로고침 방지 */
       -webkit-overflow-scrolling: touch;
+      touch-action: pan-y;
   }
 
-    .list-item { 
-display: flex; 
-justify-content: space-between; 
-min-height: 25px; /* 모바일 권장 터치 높이 확보 */
-    margin-bottom: 5px; /* 아이템 간 간격 */
-padding: 4px 0; 
-border-bottom: 1px dashed #eee; 
-font-size: 11px; 
-align-items: center; 
-gap: 3px; 
+.list-item {
+    display: flex;
+    align-items: center;
+    background: white;
+    margin-bottom: 4px;
+    border-radius: 4px;
+    /* 전체 아이템에는 touch-action을 주지 마세요! */
 }
+
     .btn-small { padding: 3px 5px; font-size: 10px; border: 1px solid #ddd; background: #fff; border-radius: 3px; cursor: pointer; }
 
 @media screen and (max-width: 600px) {
@@ -778,12 +767,47 @@ const handle = item.querySelector('.drag-handle');
   }, { passive: true });
 
 item.addEventListener('touchmove', function(e) {
-    if (dragSrcEl) { 
-        // 드래그 중에는 화면이 움직이거나 새로고침되는 것을 절대 허용 안 함
-        e.preventDefault();
-}
+if (!dragSrcEl) return;
+    
+    // 새로고침 및 스크롤 방지
+    e.preventDefault();
+
+// 현재 손가락 위치에 있는 다른 선수(아이템) 찾기
+    const touch = e.touches[0];
+    const target = document.elementFromPoint(touch.clientX, touch.clientY);
+    const overItem = target ? target.closest('.list-item') : null;
+
+    // 같은 팀 리스트 내에서 다른 아이템 위로 갔을 때 순서 교체
+    if (overItem && overItem !== dragSrcEl && overItem.parentNode === item.parentNode) {
+      const list = item.parentNode;
+      const allItems = [...list.querySelectorAll('.list-item')];
+      const currIdx = allItems.indexOf(dragSrcEl);
+      const overIdx = allItems.indexOf(overItem);
+
+      if (currIdx < overIdx) {
+        list.insertBefore(dragSrcEl, overItem.nextSibling); // 아래로 이동
+      } else {
+        list.insertBefore(dragSrcEl, overItem); // 위로 이동
+      }
+    }
   }, { passive: false });
 
+// 3. 터치 종료: 상태 복구 및 저장
+  item.addEventListener('touchend', function(e) {
+    if (dragSrcEl) {
+      dragSrcEl.style.opacity = '1';
+      
+      // 선수들 z-index 재정렬 (handleDrop 로직과 동일)
+      const list = item.parentNode;
+      list.querySelectorAll('.list-item').forEach((it, idx) => {
+        if (it.playerEl) it.playerEl.style.zIndex = 10 + idx;
+      });
+      
+      // 데이터 자동 저장 (함수가 있다면 실행)
+      if (typeof autoSaveToLocal === 'function') autoSaveToLocal();
+    }
+    dragSrcEl = null;
+  });
    
   list.appendChild(item); 
   if(!n) input.value = "";
