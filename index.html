@@ -215,9 +215,36 @@ overflow: hidden; /* 삐져나감 방지 */
   border-radius: 4px;
 }
 
+.drag-handle {
+    cursor: grab;
+    padding: 10px 15px;      /* 터치 영역 확보 */
+    margin-left: -8px;
+    color: #888;
+    font-size: 18px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    
+    /* 핵심: 모바일 스크롤 간섭 차단 */
+    touch-action: none; 
+    position: relative;
+    z-index: 2000;           /* 스크롤바보다 위로 올림 */
+    user-select: none;       /* 텍스트 선택 방지 */
+}
+
+#redList, #blueList {
+      max-height: 200px; 
+      overflow-y: auto;
+      padding-right: 10px; /* 여기에 추가! */
+      overscroll-behavior: contain; /* 모바일 새로고침 방지 */
+      -webkit-overflow-scrolling: touch;
+  }
+
     .list-item { 
 display: flex; 
 justify-content: space-between; 
+min-height: 25px; /* 모바일 권장 터치 높이 확보 */
+    margin-bottom: 5px; /* 아이템 간 간격 */
 padding: 4px 0; 
 border-bottom: 1px dashed #eee; 
 font-size: 11px; 
@@ -730,17 +757,6 @@ updateAlignButtons();
   
   item.setAttribute('draggable', 'true');
   item.dataset.team = t;
-  item.ondragstart = handleDragStart;
-  item.ondragover = handleDragOver;
-  item.ondrop = handleDrop;
-  item.ondragend = handleDragEnd;
-item.addEventListener('touchmove', function(e) {
-    if (dragSrcEl) { 
-        // 드래그 중에는 화면이 움직이거나 새로고침되는 것을 절대 허용 안 함
-        e.preventDefault();
-}
-  }, { passive: false });
-
 
   item.innerHTML = `
     <div class="drag-handle" style="cursor: grab; padding: 1px 10px; margin-left: -8px; color: #888; font-size: 15px; display: flex; align-items: center; justify-content: center;">☰</div>
@@ -749,7 +765,26 @@ item.addEventListener('touchmove', function(e) {
       <button class="btn-small" onclick="editPlayer(this)">수정</button>
       <button class="btn-small" style="color:red;" onclick="removePlayer(this)">삭제</button>
     </div>`;
-    
+
+  item.ondragstart = handleDragStart;
+  item.ondragover = handleDragOver;
+  item.ondrop = handleDrop;
+  item.ondragend = handleDragEnd;
+
+const handle = item.querySelector('.drag-handle');
+  handle.addEventListener('touchstart', function(e) {
+    dragSrcEl = item; 
+    item.style.opacity = '0.4';
+  }, { passive: true });
+
+item.addEventListener('touchmove', function(e) {
+    if (dragSrcEl) { 
+        // 드래그 중에는 화면이 움직이거나 새로고침되는 것을 절대 허용 안 함
+        e.preventDefault();
+}
+  }, { passive: false });
+
+   
   list.appendChild(item); 
   if(!n) input.value = "";
   updateAlignButtons();
