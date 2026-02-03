@@ -40,6 +40,10 @@ width: 130px; height: 35px;
   border-radius: 10px; font-weight: bold; border: none;
   box-shadow: 0 4px 10px rgba(0,0,0,0.2); cursor: pointer;
 }
+#redPlayerList, #bluePlayerList {
+    overflow-y: auto;
+    touch-action: pan-y; /* 리스트 빈 공간은 스크롤 허용 */
+}
 
 #redAlignBtn { color: var(--red-color); }
 #blueAlignBtn { color: var(--blue-color); }
@@ -207,15 +211,12 @@ overflow: hidden; /* 삐져나감 방지 */
   border-radius: 4px;
 }
 
-    .list-item { 
-display: flex; 
-justify-content: space-between; 
-padding: 4px 0; 
-border-bottom: 1px dashed #eee; 
-font-size: 11px; 
-align-items: center; 
-gap: 3px; 
-touch-action: pan-y;
+.list-item {
+    display: flex;
+    align-items: center;
+    padding: 10px;
+    border-bottom: 1px solid #eee;
+    touch-action: pan-y; /* 항목 자체에서도 스크롤 허용 */
 }
 
 .list-item button {
@@ -836,7 +837,6 @@ function handleDrop(e) {
 // 4. 드래그 종료: 투명도 복구
 function handleDragEnd(e) {
   this.style.opacity = '1';
-  // renderPlayerList(); // <- 이 줄은 삭제하세요! 호출하면 순서가 초기화될 수 있습니다.
 }
 // 5. 알림창 없는 자동 저장 함수
 function autoSaveToLocal() {
@@ -847,22 +847,32 @@ function autoSaveToLocal() {
   localStorage.setItem('soccerAutoSave', JSON.stringify(config));
 }
 
-    /* --- 그리고 아래의 renderPlayerList 함수를 찾아 내용을 수정해야 합니다 --- */
-    function renderPlayerList() {
-        const redList = document.getElementById('redPlayerList');
-        const blueList = document.getElementById('bluePlayerList');
-        
-        redList.innerHTML = '';
-        redPlayers.forEach(player => {
-            // 이 부분이 중요! 위에서 만든 함수를 호출해서 리스트를 채웁니다.
-            redList.innerHTML += createPlayerItem(player);
-        });
 
-        blueList.innerHTML = '';
-        bluePlayers.forEach(player => {
-            blueList.innerHTML += createPlayerItem(player);
-        });
-    }
+
+function renderPlayerList() {
+    const redList = document.getElementById('redPlayerList');
+    const blueList = document.getElementById('bluePlayerList');
+    
+    // 1. 리스트 그리기 (기존 로직)
+    redList.innerHTML = '';
+    redPlayers.forEach(player => {
+        redList.innerHTML += createPlayerItem(player);
+    });
+
+    blueList.innerHTML = '';
+    bluePlayers.forEach(player => {
+        blueList.innerHTML += createPlayerItem(player);
+    });
+
+    // ✅ 2. [추가된 부분] 리스트 안에 있는 모든 버튼에 모바일 터치 최적화 적용
+    const allListButtons = document.querySelectorAll('.list-item button');
+    allListButtons.forEach(btn => {
+        btn.addEventListener('touchstart', function(e) {
+            // 버튼을 눌렀을 때 화면이 꿀렁이며 스크롤되는 것을 막고 클릭(순서변경)이 잘 되게 함
+            if (e.cancelable) e.preventDefault(); 
+        }, { passive: false });
+    });
+}
 
 // 외부 주소 이미지를 보안 허용하며 불러오는 함수 (설명서)
 function setExternalImage(target, url) {
@@ -1025,6 +1035,7 @@ function updateBallSize(v) {
     function updateMenuOpacity(v) { bottomControls.style.opacity = v / 100; }
     function resetAll() { if(confirm("초기화하시겠습니까?")) location.reload(); }
     function moveOrder(btn, dir) {
+      const moveBtn = btn;
       const it = btn.closest('.list-item'), target = dir === 'up' ? it.previousElementSibling : it.nextElementSibling;
       if(!target) return;
       const p1 = it.playerEl, p2 = target.playerEl;
