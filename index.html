@@ -40,9 +40,10 @@ width: 130px; height: 35px;
   border-radius: 10px; font-weight: bold; border: none;
   box-shadow: 0 4px 10px rgba(0,0,0,0.2); cursor: pointer;
 }
+
 #redPlayerList, #bluePlayerList {
     overflow-y: auto;
-    touch-action: pan-y; /* 리스트 빈 공간은 스크롤 허용 */
+    touch-action: pan-y; /* 세로 스크롤은 브라우저가 담당 */
 }
 
 #redAlignBtn { color: var(--red-color); }
@@ -211,20 +212,16 @@ overflow: hidden; /* 삐져나감 방지 */
   border-radius: 4px;
 }
 
-.list-item {
-    display: flex;
-    align-items: center;
-    padding: 10px;
-    border-bottom: 1px solid #eee;
-    touch-action: pan-y; /* 항목 자체에서도 스크롤 허용 */
+    .list-item { 
+display: flex; 
+justify-content: space-between; 
+padding: 4px 0; 
+border-bottom: 1px dashed #eee; 
+font-size: 11px; 
+align-items: center; 
+gap: 3px; 
+touch-action: pan-y;
 }
-
-.list-item button {
-    touch-action: none !important; /* ✅ 이 버튼을 잡았을 때만 스크롤이 안 되고 드래그가 됨 */
-    cursor: grab;
-    padding: 5px 10px;
-}
-
     .btn-small { padding: 3px 5px; font-size: 10px; border: 1px solid #ddd; background: #fff; border-radius: 3px; cursor: pointer; }
 
 @media screen and (max-width: 600px) {
@@ -233,6 +230,12 @@ overflow: hidden; /* 삐져나감 방지 */
         gap: 2px;
 }
 
+.move-handle {
+    touch-action: none !important; /* ✅ 이 버튼을 잡으면 스크롤을 완전히 막음 */
+    cursor: grab;
+    padding: 10px; /* 터치하기 쉽게 영역 확보 */
+    display: inline-block;
+}
 
 /* 게이지(슬라이더) 자체가 부모를 벗어나지 않게 설정 */
 input[type="range"] {
@@ -770,7 +773,7 @@ function createPlayerItem(player) {
              ondragover="handleDragOver(event)" 
              ondrop="handleDrop(event)" 
              ondragend="handleDragEnd(event)">
-            <div class="drag-handle" style="cursor: grab; padding: 0 5px; color: #ccc;">☰</div>
+            <div class="move-handle" style="cursor: grab; padding: 0 10px; color: #ccc;">☰</div>
             <span class="player-name-display">${player.name}</span>
             <button onclick="removePlayer('${player.team}', '${player.id}')">×</button>
         </div>
@@ -837,6 +840,7 @@ function handleDrop(e) {
 // 4. 드래그 종료: 투명도 복구
 function handleDragEnd(e) {
   this.style.opacity = '1';
+  // renderPlayerList(); // <- 이 줄은 삭제하세요! 호출하면 순서가 초기화될 수 있습니다.
 }
 // 5. 알림창 없는 자동 저장 함수
 function autoSaveToLocal() {
@@ -847,28 +851,24 @@ function autoSaveToLocal() {
   localStorage.setItem('soccerAutoSave', JSON.stringify(config));
 }
 
-
-
-function renderPlayerList() {
-    const redList = document.getElementById('redPlayerList');
-    const blueList = document.getElementById('bluePlayerList');
-    
-    // 1. 리스트 그리기 (기존 로직)
-    redList.innerHTML = '';
-    redPlayers.forEach(player => {
-        redList.innerHTML += createPlayerItem(player);
-    });
+    /* --- 그리고 아래의 renderPlayerList 함수를 찾아 내용을 수정해야 합니다 --- */
+    function renderPlayerList() {
+        const redList = document.getElementById('redPlayerList');
+        const blueList = document.getElementById('bluePlayerList');
+        
+redList.innerHTML = '';
+    redPlayers.forEach(player => { redList.innerHTML += createPlayerItem(player); });
 
     blueList.innerHTML = '';
-    bluePlayers.forEach(player => {
-        blueList.innerHTML += createPlayerItem(player);
-    });
+    bluePlayers.forEach(player => { blueList.innerHTML += createPlayerItem(player); });
 
-    // ✅ 2. [추가된 부분] 리스트 안에 있는 모든 버튼에 모바일 터치 최적화 적용
-    const allListButtons = document.querySelectorAll('.list-item button');
-    allListButtons.forEach(btn => {
-        btn.addEventListener('touchstart', function(e) {
-            // 버튼을 눌렀을 때 화면이 꿀렁이며 스크롤되는 것을 막고 클릭(순서변경)이 잘 되게 함
+    // ✅ 2. [수정된 부분] 모든 '☰' 핸들 버튼을 찾아서 터치 간섭 제거
+    // 'move-handle'은 createPlayerItem에서 핸들 아이콘에 부여한 클래스여야 합니다.
+    const handles = document.querySelectorAll('.move-handle'); 
+    
+    handles.forEach(handle => {
+        handle.addEventListener('touchstart', function(e) {
+            // 핸들을 잡는 순간 스크롤 기능을 잠시 끕니다.
             if (e.cancelable) e.preventDefault(); 
         }, { passive: false });
     });
@@ -1035,7 +1035,6 @@ function updateBallSize(v) {
     function updateMenuOpacity(v) { bottomControls.style.opacity = v / 100; }
     function resetAll() { if(confirm("초기화하시겠습니까?")) location.reload(); }
     function moveOrder(btn, dir) {
-      const moveBtn = btn;
       const it = btn.closest('.list-item'), target = dir === 'up' ? it.previousElementSibling : it.nextElementSibling;
       if(!target) return;
       const p1 = it.playerEl, p2 = target.playerEl;
