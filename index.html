@@ -792,27 +792,37 @@ if (!dragSrcEl) return;
     }
   }, { passive: false });
 
-// 3. 터치 종료: 상태 복구 및 저장
+// 3. 터치 종료 (중괄호와 소괄호를 정확히 확인하세요!)
   item.addEventListener('touchend', function(e) {
     if (dragSrcEl) {
       dragSrcEl.style.opacity = '1';
       
-      // 선수들 z-index 재정렬 (handleDrop 로직과 동일)
-      const list = item.parentNode;
-      list.querySelectorAll('.list-item').forEach((it, idx) => {
-        if (it.playerEl) it.playerEl.style.zIndex = 10 + idx;
+      const list = item.parentNode; 
+      const allItems = list.querySelectorAll('.list-item');
+      
+      allItems.forEach((it, idx) => {
+        if (it.playerEl) {
+          it.playerEl.style.zIndex = 10 + idx; 
+        }
       });
       
-      // 데이터 자동 저장 (함수가 있다면 실행)
-      if (typeof autoSaveToLocal === 'function') autoSaveToLocal();
+      if (typeof window.saveData === 'function') { 
+          window.saveData(); 
+      } else if (typeof autoSaveToLocal === 'function') {
+          autoSaveToLocal();
+      }
     }
     dragSrcEl = null;
-  });
-   
+  }, { passive: true });
+
+  // 4. 리스트에 아이템 추가 및 마무리
   list.appendChild(item); 
-  if(!n) input.value = "";
-  updateAlignButtons();
-} 
+  
+  if(!n) input.value = ""; // 입력창 비우기
+  if (typeof updateAlignButtons === 'function') updateAlignButtons();
+} // <--- addPlayer 함수를 닫는 마지막 중괄호 (매우 중요!)
+
+
 
 
     function saveData() {
@@ -1480,4 +1490,3 @@ function stopDrawing() {
   </script>
 </body>
 </html>
-
