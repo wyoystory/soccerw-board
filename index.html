@@ -42,6 +42,7 @@ width: 130px; height: 35px;
 }
 
 #redPlayerList, #bluePlayerList {
+    overscroll-behavior-y: contain;
     overflow-y: auto;
     touch-action: pan-y; /* 세로 스크롤은 브라우저가 담당 */
 }
@@ -350,10 +351,11 @@ input:checked + .slider:before { transform: translateX(16px); }
     transition: transform 0.2s;
 }
 
-/* 드래그 핸들에 마우스 올리면 잡기 손모양 */
-.drag-handle:hover {
-background: #e0e0e0;
-  color: #333 !important;
+
+.drag-handle {
+touch-action: none !important;
+-webkit-user-select: none;
+    user-select: none;
 }
 
 /* 드래그 중인 타겟에 시각적 효과 */
