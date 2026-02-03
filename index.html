@@ -215,22 +215,21 @@ border-bottom: 1px dashed #eee;
 font-size: 11px; 
 align-items: center; 
 gap: 3px; 
+touch-action: pan-y;
 }
+
+.list-item button {
+    touch-action: none !important; /* ✅ 이 버튼을 잡았을 때만 스크롤이 안 되고 드래그가 됨 */
+    cursor: grab;
+    padding: 5px 10px;
+}
+
     .btn-small { padding: 3px 5px; font-size: 10px; border: 1px solid #ddd; background: #fff; border-radius: 3px; cursor: pointer; }
 
 @media screen and (max-width: 600px) {
       #bottomControls {
         padding: 5px;
         gap: 2px;
-}
-
-.player-list-container, #playerList {
-    max-height: 400px;           /* 리스트의 최대 높이 (넘어가면 스크롤 발생) */
-    overflow-y: auto;            /* 세로 스크롤 활성화 */
-    touch-action: pan-y !important; /* ✅ 손가락으로 위아래 스크롤 허용 */
-    -webkit-overflow-scrolling: touch; /* 아이폰에서 부드럽게 스크롤 */
-    position: relative;
-    z-index: 10;                 /* 다른 요소에 가려지지 않게 함 */
 }
 
 
@@ -681,7 +680,7 @@ const onMove = (e) => {
       el.addEventListener('mousedown', onStart);
       window.addEventListener('mousemove', onMove);
       window.addEventListener('mouseup', onEnd);
-      el.addEventListener('touchstart', onStart, { passive: true });
+      el.addEventListener('touchstart', onStart, { passive: false });
       window.addEventListener('touchmove', onMove, { passive: false });
       window.addEventListener('touchend', onEnd);
     }
