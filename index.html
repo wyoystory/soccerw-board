@@ -34,11 +34,18 @@
       overflow-x: hidden; width: 100%; touch-action: pan-y;
     }
     
+/* 메뉴 버튼 조절*/
     #toggleMenuBtn { 
-width: 130px; height: 35px;
+  padding: 8px 15px;
+  width: 130px; height: 45px;
   background: var(--toggle-btn-color);
-  border-radius: 10px; font-weight: bold; border: none;
-  box-shadow: 0 4px 10px rgba(0,0,0,0.2); cursor: pointer;
+  border-radius: 10px; font-weight:
+  bold; border: none;
+  box-shadow: 0 4px 10px rgba(0,0,0,0.2);
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
 }
 
 #redAlignBtn { color: var(--red-color); }
@@ -137,7 +144,7 @@ width: 45px;
 height: 45px; 
 background-image: url("Wball.png"); 
 background-size: cover;
-z-index: 10; 
+z-index: 1000 !important; 
 border: 2px solid #333; 
 }
 /* ------------- 축구공 이미지 ------------------ */
@@ -407,11 +414,11 @@ background: #e0e0e0;
 
 <div class="top-toolbar">
   <div class="side-box left" style="display: flex; gap: 5px;">
-<div id="penToolbar" style="display:none; align-items:center; gap:12px; background: rgba(255, 255, 255, 0.9); padding: 1px 6px; border-radius: 30px; border: 1px solid #e0e0e0; box-shadow: 0 4px 12px rgba(0,0,0,0.12); margin-right: 15px;">
+<div id="penToolbar" style="display:none; align-items:center; gap:12px; background: rgba(255, 255, 255, 0.9); padding: 5px 10px; border-radius: 30px; border: 1px solid #e0e0e0; box-shadow: 0 4px 12px rgba(0,0,0,0.12); margin-right: 15px;">
     
     <div style="display:flex; align-items:center; position: relative; gap: 10px;">
     <button id="penToggleBtn" onclick="togglePenMode()" 
-            style="padding:5px 12px; border-radius:20px; border:none; background:#ffffff; color:white; font-size:14px; font-weight:bold; cursor:pointer; transition: all 0.3s ease; box-shadow: 0 2px 4px rgba(0,0,0,0.2);">
+            style="padding:5px 12px; border-radius:20px; border:none; background:#ffffff; color:white; font-size:16px; font-weight:bold; cursor:pointer; transition: all 0.3s ease; box-shadow: 0 2px 4px rgba(0,0,0,0.2);">
         🖍️
     </button>
 
@@ -420,13 +427,13 @@ background: #e0e0e0;
     </div>
 
     <div style="display:flex; align-items:center; gap:1px;">
-        <span style="font-size:11px; font-weight:600; color:#666;">➰</span>
+        <span style="font-size:14px; font-weight:600; color:#666;">➰</span>
         <input type="range" id="penWidth" min="1" max="15" value="3" oninput="updateLineWidth(this.value)" 
                style="width:50px; cursor:pointer; accent-color: #444;">
     </div>
 
     <button onclick="clearCanvas()" 
-            style="padding:5px 10px; border-radius:20px; border:none; background:#000000; color:#333; font-size:14px; font-weight:bold; cursor:pointer; transition: all 0.2s;">
+            style="padding:5px 10px; border-radius:20px; border:none; background:#ffffff; color:#333; font-size:16px; font-weight:bold; cursor:pointer; transition: all 0.2s;">
         ❌
     </button>
 </div>
@@ -436,7 +443,7 @@ background: #e0e0e0;
   </div>
 
   <div class="center-box">
-    <button id="toggleMenuBtn" onclick="toggleMenu()"class="menu-btn" style="font-size: 20px;">▼ ⚙️ ▼</button>
+    <button id="toggleMenuBtn" onclick="toggleMenu()"class="menu-btn" style="font-size: 30px;">⚙️</button>
   </div>
 
   <div class="side-box right" style="display: flex; gap: 5px;">
@@ -542,7 +549,7 @@ style="padding: 2px 5px; border-radius: 12px; border: 1px solid #ddd; font-size:
 
   <label style="flex: 1; min-width: 0; height: 20px; cursor: pointer; display: flex; align-items: center; background: #ececec; border: 1px solid #ccc; padding: 0 8px; border-radius: 10px; margin: 0;">
     <div id="blueFileName" style="font-size: 9px; color: #888; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;">지정 안됨</div>
-    <input type="file" accept="image/*" style="display:none;" onchange="handleImageUpload(event, 'red')">
+    <input type="file" accept="image/*" style="display:none;" onchange="handleImageUpload(event, 'blue')">
   </label>
 
 <div style="display: flex; gap: 4px; flex-shrink: 0;">
@@ -665,7 +672,8 @@ const onMove = (e) => {
       const onEnd = (e) => {
         const touches = e.changedTouches || [e];
         for (const t of touches) { activeDrags.delete(t.identifier !== undefined ? t.identifier : 'mouse'); }
-        el.style.zIndex = 5;
+el.style.zIndex = el.classList.contains('ball') ? 2000 : 5;
+
         setTimeout(() => { el.style.transition = "left 0.4s ease-out, top 0.4s ease-out"; }, 10);
       };
       el.addEventListener('mousedown', onStart);
@@ -681,69 +689,64 @@ const onMove = (e) => {
       document.querySelectorAll(`.player[data-team="${team}"]`).forEach(p => p.style.color = color);
     }
 
-function addPlayer(t, n=null, x="50%", y="50%", c=null) {
-    const input = document.getElementById(t+'Input'), name = n || input.value.trim();
-    if(!name) return;
-    const chosenColor = c || document.getElementById(t+'ColorPicker').value;
-    const p = document.createElement('div');
+  function addPlayer(t, n=null, x="50%", y="50%", c=null) {
+  const input = document.getElementById(t+'Input'), name = n || input.value.trim();
+  if(!name) return;
+const chosenColor = c || document.getElementById(t+'ColorPicker').value;
+  const p = document.createElement('div');
+  
+  const currentShape = (typeof teamShapes !== 'undefined') ? teamShapes[t] : 'circle';
+  const currentSize = document.getElementById(t + 'PlayerSize').value;
+  const currentFontSize = document.getElementById(t + 'FontSize').value;
+
+  p.className = `player draggable shape-${currentShape}`; 
+  p.innerText = name; 
+  p.style.left = x; 
+  p.style.top = y; 
+  p.dataset.team = t;
+  p.style.color = chosenColor;
+  p.style.zIndex = 10;
+
+  p.style.width = currentSize + 'px';
+  p.style.height = currentSize + 'px';
+  p.style.fontSize = currentFontSize + 'px';
+  
+  if(persistentImages[t]) { 
+    p.style.backgroundImage = `url(${persistentImages[t]})`; 
+    p.style.backgroundColor = 'transparent'; 
+  } else { 
+    p.style.backgroundColor = 'rgba(0,0,0,0.3)'; 
+  }
+  
+updateAlignButtons();
+  makeDraggable(p); 
+  field.appendChild(p);
+
+  // 3. 리스트 아이템 생성 및 연결
+  const list = document.getElementById(t+'List'), item = document.createElement('div');
+  item.className = 'list-item'; 
+  item.playerEl = p; // 이 줄이 있어야 리스트 드래그 시 선수가 움직임
+  
+  item.setAttribute('draggable', 'true');
+  item.dataset.team = t;
+  item.ondragstart = handleDragStart;
+  item.ondragover = handleDragOver;
+  item.ondrop = handleDrop;
+  item.ondragend = handleDragEnd;
+
+  item.innerHTML = `
+    <div class="drag-handle" style="cursor: grab; padding: 1px 10px; margin-left: -8px; color: #888; font-size: 15px; display: flex; align-items: center; justify-content: center;">☰</div>
+    <span style="flex:1; font-weight:bold; overflow:hidden; white-space:nowrap; text-overflow:ellipsis; pointer-events: none;">${name}</span>
+    <div style="display:flex; gap:3px; padding-right: 5px;">
+      <button class="btn-small" onclick="editPlayer(this)">수정</button>
+      <button class="btn-small" style="color:red;" onclick="removePlayer(this)">삭제</button>
+    </div>`;
     
-    const currentShape = (typeof teamShapes !== 'undefined') ? teamShapes[t] : 'circle';
-    const currentSize = document.getElementById(t + 'PlayerSize').value;
-    const currentFontSize = document.getElementById(t + 'FontSize').value;
+  list.appendChild(item); 
+  if(!n) input.value = "";
+  updateAlignButtons();
+} 
 
-    p.className = `player draggable shape-${currentShape}`; 
-    p.innerText = name; 
-    p.style.left = x; 
-    p.style.top = y; 
-    p.dataset.team = t;
-    p.style.color = chosenColor;
-    p.style.zIndex = 10;
-    p.style.width = currentSize + 'px';
-    p.style.height = currentSize + 'px';
-    p.style.fontSize = currentFontSize + 'px';
-    
-    if(persistentImages[t]) { 
-        p.style.backgroundImage = `url(${persistentImages[t]})`; 
-        p.style.backgroundColor = 'transparent'; 
-    } else { 
-        p.style.backgroundColor = 'rgba(0,0,0,0.3)'; 
-    }
-    
-    makeDraggable(p); 
-    field.appendChild(p);
-
-    // 리스트 아이템 생성
-    const list = document.getElementById(t+'List'), item = document.createElement('div');
-    item.className = 'list-item'; 
-    item.playerEl = p; 
-    item.setAttribute('draggable', 'true');
-    item.dataset.team = t;
-
-    // 드래그앤드롭 이벤트 연결
-    item.ondragstart = handleDragStart;
-    item.ondragover = handleDragOver;
-    item.ondrop = handleDrop;
-    item.ondragend = handleDragEnd;
-
-    item.innerHTML = `
-        <div class="drag-handle" style="cursor: grab; padding: 1px 10px; margin-left: -8px; color: #888; font-size: 15px; display: flex; align-items: center; justify-content: center; touch-action: none;">☰</div>
-        <span style="flex:1; font-weight:bold; overflow:hidden; white-space:nowrap; text-overflow:ellipsis; pointer-events: none;">${name}</span>
-        <div style="display:flex; gap:3px; padding-right: 5px;">
-            <button class="btn-small" onclick="editPlayer(this)">수정</button>
-            <button class="btn-small" style="color:red;" onclick="removePlayer(this)">삭제</button>
-        </div>`;
-    
-    // ✅ 모바일 터치 간섭 방지 추가
-    const handle = item.querySelector('.drag-handle');
-    handle.addEventListener('touchstart', (e) => {
-        if (e.cancelable) e.preventDefault(); 
-        e.stopPropagation();
-    }, { passive: false });
-
-    list.appendChild(item); 
-    if(!n) input.value = "";
-    updateAlignButtons();
-}
 
     function saveData() {
       const fn = prompt("파일명 입력:", currentFileName.replace(".json", ""));
@@ -1012,34 +1015,12 @@ function updateBallSize(v) {
   ball.style.width = v + 'px';
   ball.style.height = v + 'px';
 }
-function applyFormation(t, f) {
-    const team = t.toLowerCase(); // 대소문자 방어
-    const ps = Array.from(document.getElementById(team+'List').children).map(it => it.playerEl);
-    
-    // 좌표 데이터 (수비-미드-공격 순)
-    const forms = {
-        '4-4-2': [[10,50],[25,20],[25,40],[25,60],[25,80],[45,20],[45,40],[45,60],[45,80],[70,35],[70,65]],
-        '4-3-3': [[10,50],[25,20],[25,40],[25,60],[25,80],[45,30],[45,50],[45,70],[70,20],[70,50],[70,80]],
-        '3-5-2': [[10,50],[25,25],[25,50],[25,75],[45,15],[45,32],[45,50],[45,68],[45,85],[70,35],[70,65]]
-    };
-    
-    const pos = forms[f]; 
-    if(!pos) return;
-
-    ps.forEach((p, i) => { 
-        if(p && pos[i]) { 
-            let x = (team === 'blue') ? 100 - pos[i][0] : pos[i][0];
-            let y = (team === 'blue') ? 100 - pos[i][1] : pos[i][1];
-            
-            p.style.left = x + "%"; 
-            p.style.top = y + "%"; 
-        }
-    });
-    autoSaveToLocal();
-}
-
-
-    function toggleMenu() { const col = bottomControls.classList.toggle('collapsed'); document.getElementById('toggleMenuBtn').innerText = col ?  "▼ ⚙️ ▼" : "▲ ⚙️ ▲"; }
+    function applyFormation(t, f) {
+      const ps = Array.from(document.getElementById(t+'List').children).map(it => it.playerEl), forms = {'4-4-2':[[10,50],[20,20],[20,40],[20,60],[20,80],[32,20],[32,40],[32,60],[32,80],[44,35],[44,65]],'4-3-3':[[10,50],[20,20],[20,40],[20,60],[20,80],[32,30],[32,50],[32,70],[44,20],[44,50],[44,80]],'3-5-2':[[10,50],[20,25],[20,50],[20,75],[32,15],[32,32],[32,50],[32,68],[32,85],[44,35],[44,65]]};
+      const pos = forms[f]; if(!pos) return;
+      ps.forEach((p, i)=>{ if(pos[i]){ let x=t==='blue'?100-pos[i][0]:pos[i][0]; p.style.left=x+"%"; p.style.top=pos[i][1]+"%"; }});
+    }
+    function toggleMenu() { const col = bottomControls.classList.toggle('collapsed'); document.getElementById('toggleMenuBtn').innerText = col ?  "⚙️" : "⚙️"; }
     function updateMenuOpacity(v) { bottomControls.style.opacity = v / 100; }
     function resetAll() { if(confirm("초기화하시겠습니까?")) location.reload(); }
     function moveOrder(btn, dir) {
@@ -1170,11 +1151,11 @@ function toggleOverlapPrevention(show) {
 function preventOverlap(activeEl) {
   if (!isOverlapPreventionActive) return;
 
-  const draggables = document.querySelectorAll('.player'); // 선수들만 대상으로 충돌 체크
+const targets = document.querySelectorAll('.player, .ball'); 
   const activeRect = activeEl.getBoundingClientRect();
-  const radius = activeRect.width / 2;
+  const radius = activeRect.width / 4;
 
-  draggables.forEach(target => {
+  targets.forEach(target => {
     if (target === activeEl) return;
 
     const targetRect = target.getBoundingClientRect();
@@ -1315,9 +1296,14 @@ function stopDrawing() {
 // --- 펜 기능 핵심 로직 ---
 
 let isDrawing = false;
-let points = [];
 
-function updateLineWidth(v) { if(ctx) ctx.lineWidth = v; }
+function updateLineWidth(v) { if(ctx) {
+        ctx.lineWidth = v;
+        ctx.lineCap = 'round';
+        ctx.lineJoin = 'round';
+    } }
+
+
 function changePenColor(v) { if(ctx) ctx.strokeStyle = v; }
 
 function clearCanvas()  {
@@ -1385,53 +1371,44 @@ let points = [];
 function startDrawing(e) {
     if (!penActive) return;
     if (e.target.closest('#penToolbar') || e.target.closest('#bottomControls')) return;
+
     isDrawing = true;
     const pos = getCanvasPos(e);
-    points = [pos];
+    points = [pos]; // 시작점 저장
+    
     ctx.beginPath();
     ctx.moveTo(pos.x, pos.y);
+    
+    // 펜 스타일 설정
     ctx.lineCap = 'round';
     ctx.lineJoin = 'round';
     ctx.lineWidth = document.getElementById('penWidth').value;
     ctx.strokeStyle = document.getElementById('penColorPicker').value;
 }
 
-
 function draw(e) {
     if (!isDrawing || !penActive) return;
+    
     const pos = getCanvasPos(e);
     points.push(pos);
+
     if (points.length > 2) {
+        // 마지막 세 점을 이용해 부드러운 곡선(베지어 곡선) 계산
         const lastTwoPoints = points.slice(-2);
         const controlPoint = lastTwoPoints[0];
         const endPoint = {
             x: (lastTwoPoints[0].x + lastTwoPoints[1].x) / 2,
             y: (lastTwoPoints[0].y + lastTwoPoints[1].y) / 2
         };
+
         ctx.quadraticCurveTo(controlPoint.x, controlPoint.y, endPoint.x, endPoint.y);
         ctx.stroke();
     }
-    if (e.cancelable) e.preventDefault();
 }
-
 function stopDrawing() { 
     if(isDrawing && typeof saveState === 'function') saveState(); 
     isDrawing = false; 
 }
-
-function stopDrawing() { 
-    if(isDrawing) saveState(); 
-    isDrawing = false; 
-    points = [];
-}
-
-// 이벤트 리스너 등록 (중복 방지용)
-canvas.addEventListener('mousedown', startDrawing);
-window.addEventListener('mousemove', draw);
-window.addEventListener('mouseup', stopDrawing);
-canvas.addEventListener('touchstart', startDrawing, {passive: false});
-window.addEventListener('touchmove', draw, {passive: false});
-window.addEventListener('touchend', stopDrawing);
 
   </script>
 </body>
