@@ -1595,11 +1595,11 @@ function stopDrawing() {
 
 // --- [녹화 및 시뮬레이션 핵심 로직] ---
 let recordedData = [];
-let initialState = null;
 let isRecording = false;
 let isPlaying = false;
 let playbackId = null;
 let currentFrame = 0;
+let initialState = null;
 
 // 1. 녹화 시작/중지 토글
 function startRecording() {
@@ -1632,7 +1632,13 @@ function startRecording() {
 }
 
 // 2. 매 순간의 좌표를 기록하는 함수
+let lastRecordTime = 0;
+
 function recordFrame() {
+const now = Date.now();
+    // 30ms(약 0.03초)마다 한 번씩만 기록하도록 제한 (데이터 최적화)
+    if (now - lastRecordTime < 30) return;
+
     const frame = {
         ball: { x: ball.style.left, y: ball.style.top },
         players: Array.from(document.querySelectorAll('.player')).map(p => ({
@@ -1642,6 +1648,7 @@ function recordFrame() {
         }))
     };
     recordedData.push(frame);
+   lastRecordTime = now;
 }
 
 // 3. 시뮬레이션 재생
@@ -1724,6 +1731,37 @@ if(recBtn) {
     document.querySelectorAll('.player, .ball').forEach(el => {
         el.style.transition = "left 0.4s ease-out, top 0.4s ease-out";
     });
+}
+
+// [새로 추가해야 하는 함수]
+function resetToInitialState() {
+    // 저장된 초기 위치 데이터(initialState)가 없으면 아무것도 안 함
+    if (!initialState) return;
+
+    // 1. 순간 이동처럼 보이게 하기 위해 애니메이션 잠시 끔
+    const elements = document.querySelectorAll('.player, .ball');
+    elements.forEach(el => el.style.transition = "none");
+
+    // 2. 공 위치를 녹화 시작 시점으로 복구
+    ball.style.left = initialState.ball.x;
+    ball.style.top = initialState.ball.y;
+
+    // 3. 모든 선수 위치를 이름 기준으로 찾아 복구
+    initialState.players.forEach(pData => {
+        const playerEl = Array.from(document.querySelectorAll('.player'))
+                              .find(el => el.innerText === pData.name);
+        if (playerEl) {
+            playerEl.style.left = pData.x;
+            playerEl.style.top = pData.y;
+        }
+    });
+
+    // 4. 복구가 끝난 뒤 다시 부드러운 움직임(transition)을 켬
+    setTimeout(() => {
+        elements.forEach(el => {
+            el.style.transition = "left 0.4s ease-out, top 0.4s ease-out";
+        });
+    }, 50);
 }
 
   </script>
