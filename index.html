@@ -11,6 +11,9 @@
 
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
   <title>전문가용 축구 작전판 PRO</title>
+
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.2/css/all.min.css">
+
   <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
   <style>
     :root {
@@ -387,6 +390,36 @@ background: #e0e0e0;
     cursor: grabbing;
 }
 
+/* 각 도구 그룹을 감싸는 테두리 스타일 */
+.tool-group {
+    border: 2px solid #333; /* 요청하신 진한 테두리 */
+    border-radius: 10px;
+    padding: 5px 5px 0px 30px; /* 아래쪽 여백 조절 */
+    margin-bottom: 10px;
+    background-color: #fff;
+}
+
+
+/* hidden 클래스가 빠졌을 때 보이기 */
+.sim-bar-horizontal:not(.hidden) {
+    display: inline-flex !important;
+}
+
+/* 4가지 버튼 공통 스타일 */
+.sim-btn {
+    background: white;
+    border: 1px solid #ddd;
+    border-radius: 4px;
+    width: 32px;
+    height: 32px;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 14px;
+}
+.sim-btn:hover { background: #eee; }
+
 /* 펜 툴바 컨테이너 스타일 */
 .pen-toolbar-container {
     position: fixed;
@@ -441,26 +474,26 @@ background: #e0e0e0;
 
 <div class="top-toolbar">
   <div class="side-box left" style="display: flex; gap: 5px;">
-<div id="penToolbar" style="display:none; align-items:center; gap:12px; background: rgba(255, 255, 255, 0.9); padding: 5px 10px; border-radius: 30px; border: 1px solid #e0e0e0; box-shadow: 0 4px 12px rgba(0,0,0,0.12); margin-right: 15px;">
+<div id="penToolbar" style="display:none; align-items:center; gap:12px; padding: 4px 8px; border-radius: 3px; border: 1px solid #e0e0e0; box-shadow: 0 4px 12px rgba(0,0,0,0.12); margin-right: 15px;">
     
     <div style="display:flex; align-items:center; position: relative; gap: 10px;">
     <button id="penToggleBtn" onclick="togglePenMode()" 
-            style="padding:5px 12px; border-radius:20px; border:none; background:#ffffff; color:white; font-size:16px; font-weight:bold; cursor:pointer; transition: all 0.3s ease; box-shadow: 0 2px 4px rgba(0,0,0,0.2);">
+            style="padding:4px 10px; border-radius:4px; border:none; background:#ffffff; color:white; font-size:16px; font-weight:bold; cursor:pointer; transition: all 0.3s ease; box-shadow: 0 2px 4px rgba(0,0,0,0.2);">
         🖍️
     </button>
 
         <input type="color" id="penColorPicker" value="#000000" onchange="changePenColor(this.value)" 
-               style="width:35px; height:30px; border:none; cursor:pointer; background:none; padding:0; border-radius: 50%;">
+               style="width:50px; height:35px; border:none; cursor:pointer; background:none; padding:0; border-radius: 20%;">
     </div>
 
     <div style="display:flex; align-items:center; gap:1px;">
 
         <input type="range" id="penWidth" min="1" max="15" value="3" oninput="updateLineWidth(this.value)" 
-               style="width:80px; cursor:pointer; accent-color: #444;">
+               style="width:50px; cursor:pointer; accent-color: #444;">
     </div>
 
     <button onclick="clearCanvas()" 
-            style="padding:5px 10px; border-radius:20px; border:none; background:#ffffff; color:#333; font-size:16px; font-weight:bold; cursor:pointer; transition: all 0.2s;">
+            style="padding:5px 10px; border-radius:4px; border:none; background:#ffffff; color:#333; font-size:16px; font-weight:bold; cursor:pointer; transition: all 0.2s;">
         ❌
     </button>
 </div>
@@ -477,6 +510,24 @@ background: #e0e0e0;
     <button class="align-btn blue-btns hidden" style="background: #000; color: #3498db; font-weight: bold;" onclick="alignPlayers('blue', true)">◀ll</button>
     
     <button id="blueAlignBtn" class="align-btn blue-btns hidden" style="background: #000; color: #3498db; font-weight: bold;" onclick="alignPlayers('blue', false)">ll▶</button>
+
+
+<div id="simControlBar" class="sim-bar-horizontal hidden" style="display:none; align-items:center; gap:12px; padding: 4px 8px; border-radius: 3px; border: 1px solid #e0e0e0; box-shadow: 0 4px 12px rgba(0,0,0,0.12); margin-left: 15px; ">
+
+  <button id="playBtn" class="sim-btn" onclick="playSimulation()" title="재생"
+style="padding:5px 10px; border-radius:4px; border:none; background:#ffffff; color:#333; font-size:16px; font-weight:bold; cursor:pointer; transition: all 0.2s; box-shadow: 0 2px 4px rgba(0,0,0,0.2);">
+    <i class="fas fa-play"></i>
+  </button>
+  <button id="pauseBtn" class="sim-btn" onclick="pauseSimulation()" title="일시정지"style="padding:5px 10px; border-radius:4px; border:none; background:#ffffff; color:#333; font-size:16px; font-weight:bold; cursor:pointer; transition: all 0.2s; box-shadow: 0 2px 4px rgba(0,0,0,0.2);">
+    <i class="fas fa-pause"></i>
+  </button>
+  <button id="stopBtn" class="sim-btn" onclick="stopSimulation()" title="정지"style="padding:5px 10px; border-radius:4px; border:none; background:#ffffff; color:#333; font-size:16px; font-weight:bold; cursor:pointer; transition: all 0.2s; box-shadow: 0 2px 4px rgba(0,0,0,0.2);">
+    <i class="fas fa-stop"></i>
+  </button>
+  <button id="recBtn" class="sim-btn" onclick="startRecording()" title="녹화"style="padding:5px 10px; border-radius:4px; border:none; background:#ffffff; color:#333; font-size:16px; font-weight:bold; cursor:pointer; transition: all 0.2s; box-shadow: 0 2px 4px rgba(0,0,0,0.2);">
+    <i class="fas fa-circle" style="color:#ff4d4d;"></i>
+  </button>
+</div>
   </div>
 </div>
   <div id="field-container">
@@ -622,6 +673,7 @@ style="padding: 2px 5px; border-radius: 12px; border: 1px solid #ddd; font-size:
             <input type="file" id="fieldInput" style="display:none;" onchange="handleImageUpload(event, 'field')">
           </label>
 
+<div class="tool-group">
 <div class="setting-grid" style="margin-bottom:8px;">
   <span>펜 도구</span>
   <label class="switch">
@@ -630,6 +682,16 @@ style="padding: 2px 5px; border-radius: 12px; border: 1px solid #ddd; font-size:
   </label>
 </div>
 
+  <div class="setting-grid" style="margin-bottom:8px;">
+    <span>녹화도구</span>
+    <label class="switch">
+      <input type="checkbox" id="simModeCheckbox" onchange="toggleSimulationBar(this.checked)">
+      <span class="slider"></span>
+    </label>
+</div>
+</div>
+
+<div class="tool-group">
 <div class="setting-grid" style="margin-bottom:8px;">
   <span>정렬버튼</span>
 <label class="switch">
@@ -644,6 +706,7 @@ style="padding: 2px 5px; border-radius: 12px; border: 1px solid #ddd; font-size:
     <input type="checkbox" id="overlapCheckbox" onchange="toggleOverlapPrevention(this.checked)">
     <span class="slider"></span>
   </label>
+</div>
 </div>
 
           <div class="data-btn-container" style="margin-top: 5px !important;">
@@ -853,9 +916,6 @@ list.querySelectorAll('.list-item').forEach((it, idx) => {
   if(!n) input.value = ""; // 입력창 비우기
   if (typeof updateAlignButtons === 'function') updateAlignButtons();
 }
-
-
-
 
     function saveData() {
       const fn = prompt("파일명 입력:", currentFileName.replace(".json", ""));
@@ -1337,6 +1397,14 @@ function togglePenToolbar(isVisible) {
     if (!isVisible && penActive) togglePenMode();
 }
 
+function toggleSimulationBar(checked) {
+    const simBar = document.getElementById('simControlBar');
+    if (checked) {
+        simBar.classList.remove('hidden');
+    } else {
+        simBar.classList.add('hidden');
+    }
+}
 
 let penActive = false;
 const canvas = document.getElementById('drawingCanvas');
