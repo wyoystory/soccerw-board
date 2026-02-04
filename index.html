@@ -747,14 +747,14 @@ const onMove = (e) => {
             let x = ((t.clientX - fr.left - d.offsetX) / fr.width) * 100;
             let y = ((t.clientY - fr.top - d.offsetY) / fr.height) * 100;
             
-            // 1. 선수의 위치를 먼저 업데이트합니다.
             el.style.left = Math.max(0, Math.min(100, x)) + "%";
             el.style.top = Math.max(0, Math.min(100, y)) + "%";
 
-            // 2. [여기에 추가!] 선수가 움직일 때마다 다른 선수를 밀어내는지 체크합니다.
+            if (isRecording) recordFrame();
+
             preventOverlap(el); 
           }
-        }
+        };
         if (activeDrags.size > 0 && e.cancelable) e.preventDefault();
       };
       const onEnd = (e) => {
@@ -909,17 +909,25 @@ list.querySelectorAll('.list-item').forEach((it, idx) => {
   if (typeof updateAlignButtons === 'function') updateAlignButtons();
 }
 
-    function saveData() {
-      const fn = prompt("파일명 입력:", currentFileName.replace(".json", ""));
-      if (!fn) return;
-      currentFileName = fn + ".json";
-      const players = Array.from(document.querySelectorAll('.player')).map(p => ({
+function saveData() {
+    const fn = prompt("파일명 입력:", currentFileName.replace(".json", ""));
+    if (!fn) return;
+    
+    const players = Array.from(document.querySelectorAll('.player')).map(p => ({
         name: p.innerText, team: p.dataset.team, x: p.style.left, y: p.style.top, color: p.style.color
-      }));
-      const config = { players, ball: { x: ball.style.left, y: ball.style.top, size: ball.style.width || "45px" }, images: persistentImages };
+    }));
+
+    const config = { 
+        players, 
+        ball: { x: ball.style.left, y: ball.style.top, size: ball.style.width || "45px" }, 
+        images: persistentImages,
+        simulation: recordedData // [추가] 녹화 데이터 포함
+    };
+
       const a = document.createElement("a");
       a.href = URL.createObjectURL(new Blob([JSON.stringify(config)], {type: "application/json"}));
-      a.download = currentFileName; a.click();
+      a.download = fn + ".json"; 
+    a.click();
     }
 
 function createPlayerItem(player) {
@@ -1087,9 +1095,15 @@ if (d.images.ball) {
     ball.style.height = d.ball.size;
 const ballSlider = document.getElementById('ballSize');
     if (ballSlider) {
-ballSlider.value = parseInt(d.ball.size); // d.ball.size에서 숫자를 직접 추출
+ballSlider.value = parseInt(d.ball.size); 
     }
   }
+if (d.simulation) {
+    recordedData = d.simulation;
+console.log("시뮬레이션 데이터 불러오기 완료:", recordedData.length, "프레임");
+        } else {
+            recordedData = []; // 데이터가 없으면 초기화
+        }
 }
       };
       reader.readAsText(file);
@@ -1577,6 +1591,139 @@ function draw(e) {
 function stopDrawing() { 
     if(isDrawing && typeof saveState === 'function') saveState(); 
     isDrawing = false; 
+}
+
+// --- [녹화 및 시뮬레이션 핵심 로직] ---
+let recordedData = [];
+let initialState = null;
+let isRecording = false;
+let isPlaying = false;
+let playbackId = null;
+let currentFrame = 0;
+
+// 1. 녹화 시작/중지 토글
+function startRecording() {
+    const recBtn = document.getElementById('recBtn');
+    
+    if (!isRecording) {
+
+        initialState = {
+            ball: { x: ball.style.left, y: ball.style.top },
+            players: Array.from(document.querySelectorAll('.player')).map(p => ({
+                name: p.innerText,
+                x: p.style.left,
+                y: p.style.top
+            }))
+        };
+
+        isRecording = true;
+        recordedData = []; // 이전 데이터 초기화
+        recBtn.style.background = "#ffcccc"; // 녹화 중 표시
+        recBtn.querySelector('i').classList.replace('fa-circle', 'fa-square');
+        console.log("녹화 시작...");
+    } else {
+        // 녹화 중지
+        isRecording = false;
+        recBtn.style.background = "#ffffff";
+        recBtn.querySelector('i').classList.replace('fa-square', 'fa-circle');
+        resetToInitialState();
+        console.log("녹화 종료 및 위치 복구 완료");
+    }
+}
+
+// 2. 매 순간의 좌표를 기록하는 함수
+function recordFrame() {
+    const frame = {
+        ball: { x: ball.style.left, y: ball.style.top },
+        players: Array.from(document.querySelectorAll('.player')).map(p => ({
+            name: p.innerText, // 이름으로 매칭
+            x: p.style.left,
+            y: p.style.top
+        }))
+    };
+    recordedData.push(frame);
+}
+
+// 3. 시뮬레이션 재생
+let playbackSpeed = 1; // 기본 1배속
+
+function playSimulation() {
+    if (recordedData.length === 0) return alert("녹화된 데이터가 없습니다.");
+    if (isPlaying) return;
+
+    isPlaying = true;
+    let frameIndex = 0;
+    let lastTime = 0;
+    
+    // 초당 30프레임 정도로 제한 (녹화 시와 유사하게 부드러운 속도)
+    const fps = 30; 
+    const interval = 1000 / fps;
+
+    document.querySelectorAll('.player, .ball').forEach(el => el.style.transition = "none");
+
+    function nextFrame(timestamp) {
+        if (!isPlaying) return;
+        if (currentFrame >= recordedData.length) {
+            stopSimulation();
+            return;
+        }
+
+        // 시간 차이를 계산하여 일정한 프레임 속도로 재생
+        const deltaTime = timestamp - lastTime;
+
+        if (deltaTime >= interval / playbackSpeed) {
+            const data = recordedData[currentFrame];
+            
+            // 공 이동
+            ball.style.left = data.ball.x;
+            ball.style.top = data.ball.y;
+
+            // 선수들 이동
+            data.players.forEach(pData => {
+                const playerEl = Array.from(document.querySelectorAll('.player'))
+                                      .find(el => el.innerText === pData.name);
+                if (playerEl) {
+                    playerEl.style.left = pData.x;
+                    playerEl.style.top = pData.y;
+                }
+            });
+
+            currentFrame++;
+            lastTime = timestamp;
+        }
+        
+        playbackId = requestAnimationFrame(nextFrame);
+    }
+    
+    playbackId = requestAnimationFrame(nextFrame);
+}
+
+// 4. 재생 일시정지
+function pauseSimulation() {
+    isPlaying = false;
+    cancelAnimationFrame(playbackId);
+}
+
+// 5. 정지 (초기화)
+function stopSimulation() {
+    isPlaying = false;
+    isRecording = false;
+    currentFrame = 0;
+    cancelAnimationFrame(playbackId);
+    
+    resetToInitialState();
+
+    // UI 복구
+    const recBtn = document.getElementById('recBtn');
+if(recBtn) {
+    recBtn.style.background = "#ffffff";
+    recBtn.querySelector('i').className = "fas fa-circle";
+    recBtn.querySelector('i').style.color = "#ff4d4d";
+}
+
+    document.querySelectorAll('.player, .ball').forEach(el => {
+        el.style.transition = "left 0.4s ease-out, top 0.4s ease-out";
+    });
 }
 
   </script>
