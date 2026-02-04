@@ -40,7 +40,7 @@
     
 /* 메뉴 버튼 조절*/
     #toggleMenuBtn { 
-  padding: 8px 15px;
+  padding: 8px 15px 12px;
   width: 55px; height: 45px;
   background: var(--toggle-btn-color);
   border-radius: 10px; font-weight:
@@ -281,15 +281,6 @@ display: flex;
   gap: 10px; /* 버튼 사이의 간격 */
 }
 
-/* 도구 그룹 디자인 */
-.tool-group { 
-  display: flex; 
-  gap: 3px; 
-  background: rgba(255,255,255,0.9); 
-  padding: 4px; 
-  border-radius: 8px; 
-  box-shadow: 0 2px 5px rgba(0,0,0,0.1);
-}
 
 /* 정렬 버튼 스타일 */
 .align-btn {
@@ -394,9 +385,10 @@ background: #e0e0e0;
 .tool-group {
     border: 2px solid #333; /* 요청하신 진한 테두리 */
     border-radius: 10px;
-    padding: 5px 5px 0px 30px; /* 아래쪽 여백 조절 */
+    padding: 8px 0px 0px 15px; /* 아래쪽 여백 조절 */
     margin-bottom: 10px;
     background-color: #fff;
+display: flex; justify-content: center;
 }
 
 
@@ -478,7 +470,7 @@ background: #e0e0e0;
     
     <div style="display:flex; align-items:center; position: relative; gap: 10px;">
     <button id="penToggleBtn" onclick="togglePenMode()" 
-            style="padding:4px 10px; border-radius:4px; border:none; background:#ffffff; color:white; font-size:16px; font-weight:bold; cursor:pointer; transition: all 0.3s ease; box-shadow: 0 2px 4px rgba(0,0,0,0.2);">
+            style="padding:5px 13px; border-radius:4px; border:none; background:#ffffff; color:white; font-size:16px; font-weight:bold; cursor:pointer; transition: all 0.3s ease; box-shadow: 0 2px 4px rgba(0,0,0,0.2);">
         🖍️
     </button>
 
@@ -493,7 +485,7 @@ background: #e0e0e0;
     </div>
 
     <button onclick="clearCanvas()" 
-            style="padding:5px 10px; border-radius:4px; border:none; background:#ffffff; color:#333; font-size:16px; font-weight:bold; cursor:pointer; transition: all 0.2s;">
+            style="padding:5px 13px; border-radius:4px; border:none; background:#ffffff; color:#333; font-size:16px; font-weight:bold; cursor:pointer; transition: all 0.2s;">
         ❌
     </button>
 </div>
@@ -512,19 +504,19 @@ background: #e0e0e0;
     <button id="blueAlignBtn" class="align-btn blue-btns hidden" style="background: #000; color: #3498db; font-weight: bold;" onclick="alignPlayers('blue', false)">ll▶</button>
 
 
-<div id="simControlBar" class="sim-bar-horizontal hidden" style="display:none; align-items:center; gap:12px; padding: 4px 8px; border-radius: 3px; border: 1px solid #e0e0e0; box-shadow: 0 4px 12px rgba(0,0,0,0.12); margin-left: 15px; ">
+<div id="simControlBar" class="sim-bar-horizontal hidden" style="display:none; align-items:center; gap:12px; padding: 5px 10px; border-radius: 3px; border: 1px solid #e0e0e0; box-shadow: 0 4px 12px rgba(0,0,0,0.12); margin-left: 15px; ">
 
   <button id="playBtn" class="sim-btn" onclick="playSimulation()" title="재생"
-style="padding:5px 10px; border-radius:4px; border:none; background:#ffffff; color:#333; font-size:16px; font-weight:bold; cursor:pointer; transition: all 0.2s; box-shadow: 0 2px 4px rgba(0,0,0,0.2);">
+style="padding:4px 25px; border-radius:4px; border:none; background:#ffffff; color:#333; font-size:16px; font-weight:bold; cursor:pointer; transition: all 0.2s; box-shadow: 0 2px 4px rgba(0,0,0,0.2);">
     <i class="fas fa-play"></i>
   </button>
-  <button id="pauseBtn" class="sim-btn" onclick="pauseSimulation()" title="일시정지"style="padding:5px 10px; border-radius:4px; border:none; background:#ffffff; color:#333; font-size:16px; font-weight:bold; cursor:pointer; transition: all 0.2s; box-shadow: 0 2px 4px rgba(0,0,0,0.2);">
+  <button id="pauseBtn" class="sim-btn" onclick="pauseSimulation()" title="일시정지"style="padding:4px 25px; border-radius:4px; border:none; background:#ffffff; color:#333; font-size:16px; font-weight:bold; cursor:pointer; transition: all 0.2s; box-shadow: 0 2px 4px rgba(0,0,0,0.2);">
     <i class="fas fa-pause"></i>
   </button>
-  <button id="stopBtn" class="sim-btn" onclick="stopSimulation()" title="정지"style="padding:5px 10px; border-radius:4px; border:none; background:#ffffff; color:#333; font-size:16px; font-weight:bold; cursor:pointer; transition: all 0.2s; box-shadow: 0 2px 4px rgba(0,0,0,0.2);">
+  <button id="stopBtn" class="sim-btn" onclick="stopSimulation()" title="정지"style="padding:4px 25px; border-radius:4px; border:none; background:#ffffff; color:#333; font-size:16px; font-weight:bold; cursor:pointer; transition: all 0.2s; box-shadow: 0 2px 4px rgba(0,0,0,0.2);">
     <i class="fas fa-stop"></i>
   </button>
-  <button id="recBtn" class="sim-btn" onclick="startRecording()" title="녹화"style="padding:5px 10px; border-radius:4px; border:none; background:#ffffff; color:#333; font-size:16px; font-weight:bold; cursor:pointer; transition: all 0.2s; box-shadow: 0 2px 4px rgba(0,0,0,0.2);">
+  <button id="recBtn" class="sim-btn" onclick="startRecording()" title="녹화"style="padding:4px 25px; border-radius:4px; border:none; background:#ffffff; color:#333; font-size:16px; font-weight:bold; cursor:pointer; transition: all 0.2s; box-shadow: 0 2px 4px rgba(0,0,0,0.2);">
     <i class="fas fa-circle" style="color:#ff4d4d;"></i>
   </button>
 </div>
