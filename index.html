@@ -701,19 +701,15 @@ style="padding: 2px 5px; border-radius: 12px; border: 1px solid #ddd; font-size:
 </div>
 </div>
 
-
-
           <div class="data-btn-container" style="margin-top: 5px !important;">
             <button class="btn-full" style="background:#f39c12;" onclick="takeScreenshot()">📸 스크린샷</button>
             <button class="btn-full" style="background:#2c5e50;" onclick="saveData()">💾 저 장</button>
 
-  <button class="btn-full" style="background:#27ae60;" onclick="document.getElementById('fileLoader').click()">📂 파일 불러오기</button>
+  <button class="btn-full" style="background:#27ae60;" onclick="document.getElementById('fileLoader').click()">📂 불러오기</button>
   
   <button class="btn-full" style="background:#3498db; color:white;" onclick="revertToLastFile()">↩️ 불러오기 상태로 복구</button>
   
   <button class="btn-full" style="background:#e74c3c; color:white;" onclick="resetAll()">🔄 전체 초기화</button>
-
-
 
           </div>
           <input type="file" id="fileLoader" accept=".json" style="display:none;" onchange="loadData(event)">
@@ -724,7 +720,7 @@ style="padding: 2px 5px; border-radius: 12px; border: 1px solid #ddd; font-size:
 
   <script>
     const field = document.getElementById('field'), ball = document.getElementById('ball'), bottomControls = document.getElementById('bottomControls');
-    let currentFileName = "soccerW_filed_data.json";
+    let currentFileName = "footballW_filed_data.json";
     const persistentImages = { red: null, blue: null, field: null, ball: null };
     const activeDrags = new Map();
 
@@ -1069,7 +1065,6 @@ function revertToLastFile() {
     }
     if (confirm("불러왔던 파일의 초기 상태로 되돌리시겠습니까?")) {
         renderData(JSON.parse(lastLoadedData));
-        alert("불러온 시점의 상태로 복구되었습니다.");
     }
 }
 
@@ -1077,12 +1072,10 @@ function renderData(d) {
     // 1. 기존 요소 제거
     document.querySelectorAll('.player, .list-item').forEach(el => el.remove());
 
-
     const defaultField = 'https://postfiles.pstatic.net/MjAyNjAxMjlfMjI1/MDAxNzY5NjM1Mjc0NjQ5.502_CqNalGrTYu6ZLubeKv3k_Yi01fCGmv4_tRIq_a4g.BvhqNdBmteUb3ZSa07vyILSugnFty_RPVM18IN9cxYAg.PNG/field.png?type=w580';
     field.style.backgroundImage = `url('${defaultField}')`;
     document.getElementById('fieldNameDisplay').innerText = "지정 안됨";
     persistentImages.field = null;
-
 
     if (d.images) {
         Object.assign(persistentImages, d.images);
