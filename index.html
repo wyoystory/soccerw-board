@@ -701,11 +701,20 @@ style="padding: 2px 5px; border-radius: 12px; border: 1px solid #ddd; font-size:
 </div>
 </div>
 
+
+
           <div class="data-btn-container" style="margin-top: 5px !important;">
             <button class="btn-full" style="background:#f39c12;" onclick="takeScreenshot()">📸 스크린샷</button>
-            <button class="btn-full" style="background:#2c3e50;" onclick="saveData()">💾 저 장</button>
-            <button class="btn-full" style="background:#27ae60;" onclick="document.getElementById('fileLoader').click()">📂 불러오기</button>
-            <button class="btn-full" style="background:#e74c3c;" onclick="resetAll()">🔄 전체 초기화</button>
+            <button class="btn-full" style="background:#2c5e50;" onclick="saveData()">💾 저 장</button>
+
+  <button class="btn-full" style="background:#27ae60;" onclick="document.getElementById('fileLoader').click()">📂 파일 불러오기</button>
+  
+  <button class="btn-full" style="background:#3498db; color:white;" onclick="revertToLastFile()">↩️ 불러오기 상태로 복구</button>
+  
+  <button class="btn-full" style="background:#e74c3c; color:white;" onclick="resetAll()">🔄 전체 초기화</button>
+
+
+
           </div>
           <input type="file" id="fileLoader" accept=".json" style="display:none;" onchange="loadData(event)">
         </div>
@@ -789,6 +798,7 @@ const chosenColor = c || document.getElementById(t+'ColorPicker').value;
 
   p.className = `player draggable shape-${currentShape}`; 
   p.innerText = name; 
+  p.dataset.name = name;
   p.style.left = x; 
   p.style.top = y; 
   p.dataset.team = t;
@@ -907,6 +917,8 @@ list.querySelectorAll('.list-item').forEach((it, idx) => {
   
   if(!n) input.value = ""; // 입력창 비우기
   if (typeof updateAlignButtons === 'function') updateAlignButtons();
+
+return p;
 }
 
 function saveData() {
@@ -1050,10 +1062,113 @@ function setExternalImage(target, url) {
   };
 }
 
+function revertToLastFile() {
+    if (!lastLoadedData) {
+        alert("최근에 불러온 파일 데이터가 없습니다.");
+        return;
+    }
+    if (confirm("불러왔던 파일의 초기 상태로 되돌리시겠습니까?")) {
+        renderData(JSON.parse(lastLoadedData));
+        alert("불러온 시점의 상태로 복구되었습니다.");
+    }
+}
+
+function renderData(d) {
+    // 1. 기존 요소 제거
+    document.querySelectorAll('.player, .list-item').forEach(el => el.remove());
+
+
+    const defaultField = 'https://postfiles.pstatic.net/MjAyNjAxMjlfMjI1/MDAxNzY5NjM1Mjc0NjQ5.502_CqNalGrTYu6ZLubeKv3k_Yi01fCGmv4_tRIq_a4g.BvhqNdBmteUb3ZSa07vyILSugnFty_RPVM18IN9cxYAg.PNG/field.png?type=w580';
+    field.style.backgroundImage = `url('${defaultField}')`;
+    document.getElementById('fieldNameDisplay').innerText = "지정 안됨";
+    persistentImages.field = null;
+
+
+    if (d.images) {
+        Object.assign(persistentImages, d.images);
+        if (d.images.field) {
+            const bgLayer = document.getElementById('field-bg');
+            if(bgLayer) bgLayer.style.backgroundImage = `url(${d.images.field})`;
+            document.getElementById('fieldNameDisplay').innerText = "불러온 배경";
+        }
+        if (d.images.red) setExternalImage('red', d.images.red);
+        if (d.images.blue) setExternalImage('blue', d.images.blue);
+        if (d.images.ball) {
+            ball.style.backgroundImage = `url('${d.images.ball}')`;
+            ball.style.backgroundColor = 'transparent';
+            ball.style.backgroundSize = 'cover';
+            if(document.getElementById('ballFileName')) document.getElementById('ballFileName').innerText = "저장된 공";
+        }
+    }
+
+// 3. 선수 복구 및 위치 강제 고정
+  if (d.players) {
+        d.players.forEach(p => {
+            // 선수 생성
+            const playerEl = addPlayer(p.team, p.name, p.x, p.y, p.color);
+            
+            if (playerEl) {
+                // [추가] 생성 직후 겹침 방지 로직이 선수들을 튕겨내지 못하게 
+                // 잠시 transition을 끄고 위치를 확정합니다.
+                playerEl.style.transition = "none";
+                playerEl.style.left = p.x;
+                playerEl.style.top = p.y;
+                
+                // 잠시 후 다시 애니메이션을 켭니다.
+                setTimeout(() => {
+                    playerEl.style.transition = "left 0.4s ease-out, top 0.4s ease-out";
+                }, 50);
+            }
+        });
+    }
+
+    // 4. 공 위치 복구
+    if (d.ball) {
+        ball.style.transition = "none";
+        ball.style.left = d.ball.x;
+        ball.style.top = d.ball.y;
+        setTimeout(() => {
+            ball.style.transition = "left 0.4s ease-out, top 0.4s ease-out";
+        }, 50);
+    }
+
+    // 5. 시뮬레이션 복구 및 첫 프레임 정렬
+    if (d.simulation && d.simulation.length > 0) {
+        recordedData = d.simulation;
+        // [추가] 녹화 데이터를 불러왔다면, 첫 번째 프레임의 위치로 선수들을 정렬합니다.
+        applyFrame(0); 
+    } else {
+        recordedData = [];
+    }
+}
+
+function loadData(event) {
+    const file = event.target.files[0]; 
+    if (!file || !confirm("데이터를 불러오시겠습니까?")) return;
+    const reader = new FileReader();
+    
+    reader.onload = (e) => {
+        // [백업] 나중에 복구 버튼을 위해 원본을 저장함
+        lastLoadedData = e.target.result; 
+
+        // [해석]
+        const d = JSON.parse(e.target.result);
+
+        // [실행] 중복된 코드는 지우고 이 한 줄만 씁니다!
+        renderData(d); 
+    };
+    reader.readAsText(file);
+    event.target.value = '';
+}
+
     function loadData(event) {
       const file = event.target.files[0]; if (!file || !confirm("데이터를 불러오시겠습니까?")) return;
       const reader = new FileReader();
       reader.onload = (e) => {
+
+const rawData = e.target.result;
+        lastLoadedData = rawData;
+
         const d = JSON.parse(e.target.result);
 
         document.querySelectorAll('.player, .list-item').forEach(el => el.remove());
@@ -1197,7 +1312,12 @@ function updateBallSize(v) {
     }
     function toggleMenu() { const col = bottomControls.classList.toggle('collapsed'); document.getElementById('toggleMenuBtn').innerText = col ?  "⚙️" : "⚙️"; }
     function updateMenuOpacity(v) { bottomControls.style.opacity = v / 100; }
-    function resetAll() { if(confirm("초기화하시겠습니까?")) location.reload(); }
+
+function resetAll() {
+    if (!confirm("모든 데이터를 지우고 처음 상태로 되돌리시겠습니까?")) return;
+    localStorage.removeItem('tacticBoardData'); // 자동저장 데이터 삭제
+    location.reload(); // 페이지 새로고침하여 완전 초기화
+}
     function moveOrder(btn, dir) {
       const it = btn.closest('.list-item'), target = dir === 'up' ? it.previousElementSibling : it.nextElementSibling;
       if(!target) return;
@@ -1339,7 +1459,7 @@ const targets = document.querySelectorAll('.player, .ball');
     const distance = Math.sqrt(dx * dx + dy * dy);
 
     // 선수 지름의 90% 정도 거리 안에 들어오면 밀어냄
-    const minDistance = activeRect.width * 0.9; 
+    const minDistance = activeRect.width * 0.8; 
     
     if (distance < minDistance && distance > 0) {
       const angle = Math.atan2(dy, dx);
@@ -1364,6 +1484,8 @@ setTimeout(() => {
     }
   });
 }
+
+let lastLoadedData = null;
 
 // 팀별 현재 모양 상태 저장 (기본값 circle)
 let teamShapes = { red: 'circle', blue: 'circle' };
@@ -1443,39 +1565,6 @@ btn.style.fontSize = "15px";
     }
 }
 
-function saveState() {
-    undoStack.push(canvas.toDataURL());
-    if (undoStack.length > 20) undoStack.shift(); // 최대 20개까지 저장
-    redoStack = []; // 새 그림을 그리면 앞으로가기 기록 삭제
-}
-
-// 뒤로가기
-function undo() {
-    if (undoStack.length === 0) {
-        ctx.clearRect(0, 0, canvas.width, canvas.height);
-        return;
-    }
-    redoStack.push(canvas.toDataURL());
-    let previous = undoStack.pop();
-    renderImage(previous);
-}
-
-// 앞으로가기
-function redo() {
-    if (redoStack.length === 0) return;
-    undoStack.push(canvas.toDataURL());
-    let next = redoStack.pop();
-    renderImage(next);
-}
-
-function renderImage(src) {
-    let img = new Image();
-    img.src = src;
-    img.onload = () => {
-        ctx.clearRect(0, 0, canvas.width, canvas.height);
-        ctx.drawImage(img, 0, 0);
-    };
-}
 
 // 기존 stopDrawing 함수를 아래처럼 수정 (저장 로직 추가)
 function stopDrawing() { 
@@ -1596,7 +1685,6 @@ function draw(e) {
     }
 }
 function stopDrawing() { 
-    if(isDrawing && typeof saveState === 'function') saveState(); 
     isDrawing = false; 
 }
 
@@ -1757,10 +1845,11 @@ function resetToInitialState() {
     ball.style.top = initialState.ball.y;
 
     // 3. 모든 선수 위치를 이름 기준으로 찾아 복구
-    initialState.players.forEach(pData => {
+  initialState.players.forEach(pData => {
+        // [수정] dataset.name으로 찾거나, 없으면 innerText로 찾음
         const playerEl = Array.from(document.querySelectorAll('.player'))
-                              .find(el => el.innerText === pData.name);
-        if (playerEl) {
+                              .find(el => (el.dataset.name === pData.name) || (el.innerText === pData.name));
+      if (playerEl) {
             playerEl.style.left = pData.x;
             playerEl.style.top = pData.y;
         }
