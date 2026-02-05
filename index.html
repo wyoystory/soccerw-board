@@ -1328,14 +1328,14 @@ function preventOverlap(activeEl) {
 
 const targets = document.querySelectorAll('.player, .ball'); 
   const activeRect = activeEl.getBoundingClientRect();
-  const radius = activeRect.width / 4;
+  const radius = activeRect.width / 2;
 
   targets.forEach(target => {
     if (target === activeEl) return;
 
     const targetRect = target.getBoundingClientRect();
-    const dx = (activeRect.left + radius) - (targetRect.left + radius);
-    const dy = (activeRect.top + radius) - (targetRect.top + radius);
+    const dx = (activeRect.left + radius) - (targetRect.left + (targetRect.width / 2));
+    const dy = (activeRect.top + radius) - (targetRect.top + (targetRect.height / 2));
     const distance = Math.sqrt(dx * dx + dy * dy);
 
     // 선수 지름의 90% 정도 거리 안에 들어오면 밀어냄
@@ -1344,6 +1344,9 @@ const targets = document.querySelectorAll('.player, .ball');
     if (distance < minDistance && distance > 0) {
       const angle = Math.atan2(dy, dx);
       const push = (minDistance - distance);
+
+target.style.transition = "none";
+
       const pushX = Math.cos(angle) * push;
       const pushY = Math.sin(angle) * push;
 
@@ -1354,6 +1357,10 @@ const targets = document.querySelectorAll('.player, .ball');
 
       target.style.left = Math.max(0, Math.min(100, newX)) + "%";
       target.style.top = Math.max(0, Math.min(100, newY)) + "%";
+
+setTimeout(() => {
+          target.style.transition = "left 0.4s ease-out, top 0.4s ease-out";
+      }, 100);
     }
   });
 }
