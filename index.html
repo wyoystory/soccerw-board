@@ -203,9 +203,12 @@ overflow: hidden; /* 삐져나감 방지 */
     
     .data-btn-container { display: flex; flex-direction: column; gap: 5px; margin-top: auto; }
 .btn-full {
+  color: white;
   padding: 4px 2px !important;
-  font-size: 10px !important;
+  font-size: 14px !important;
+  font-weight: bold;  /* 글자 두껍게 */
   border-radius: 4px;
+  border: none;       /* 기본 테두리 제거 */
 }
 
 .drag-handle {
@@ -569,9 +572,10 @@ style="padding: 2px 5px; border-radius: 12px; border: 1px solid #ddd; font-size:
 </div>
 
 <div class="setting-grid" style="display: flex; align-items: center; gap: 10px; margin-bottom: 8px;">
-  <span style="font-size: 10px; width: 40px; flex-shrink: 0;">유니폼</span>
+
 
   <label style="flex: 1; min-width: 0; height: 20px; cursor: pointer; display: flex; align-items: center; background: #ececec; border: 1px solid #ccc; padding: 0 8px; border-radius: 10px; margin: 0;">
+  <span style="font-size: 10px; width: 40px; flex-shrink: 0;">유니폼</span>
     <div id="redFileName" style="font-size: 9px; color: #888; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;">지정 안됨</div>
     <input type="file" accept="image/*" style="display:none;" onchange="handleImageUpload(event, 'red')">
   </label>
@@ -624,9 +628,10 @@ style="padding: 2px 5px; border-radius: 12px; border: 1px solid #ddd; font-size:
 </div>
 
 <div class="setting-grid" style="display: flex; align-items: center; gap: 10px; margin-bottom: 8px;">
-  <span style="font-size: 10px; width: 40px; flex-shrink: 0;">유니폼</span>
+
 
   <label style="flex: 1; min-width: 0; height: 20px; cursor: pointer; display: flex; align-items: center; background: #ececec; border: 1px solid #ccc; padding: 0 8px; border-radius: 10px; margin: 0;">
+  <span style="font-size: 10px; width: 40px; flex-shrink: 0;">유니폼</span>
     <div id="blueFileName" style="font-size: 9px; color: #888; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;">지정 안됨</div>
     <input type="file" accept="image/*" style="display:none;" onchange="handleImageUpload(event, 'blue')">
   </label>
@@ -711,12 +716,12 @@ style="padding: 2px 5px; border-radius: 12px; border: 1px solid #ddd; font-size:
 </div>
 
           <div class="data-btn-container" style="margin-top: 5px !important;">
-            <button class="btn-full" style="background:#f39c12;" onclick="takeScreenshot()">📸 스크린샷</button>
-            <button class="btn-full" style="background:#2c5e50;" onclick="saveData()">💾 저 장</button>
+            <button class="btn-full" style="background:#663399;" onclick="takeScreenshot()">📸 스크린샷</button>
+            <button class="btn-full" style="background:#3498db;" onclick="saveData()">💾 저 장</button>
 
   <button class="btn-full" style="background:#27ae60;" onclick="document.getElementById('fileLoader').click()">📂 불러오기</button>
   
-  <button class="btn-full" style="background:#3498db; color:white;" onclick="revertToLastFile()">↩️ 불러오기 상태로 복구</button>
+  <button class="btn-full" style="background:#f39c12; color:white;" onclick="revertToLastFile()">↩️ 불러오기 초기화</button>
   
   <button class="btn-full" style="background:#e74c3c; color:white;" onclick="resetAll()">🔄 전체 초기화</button>
 
