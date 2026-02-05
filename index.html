@@ -1816,7 +1816,9 @@ function stopSimulation() {
     currentFrame = 0;
     cancelAnimationFrame(playbackId);
     
+if (recordedData && recordedData.length > 0) {
     resetToInitialState();
+}
 
     // UI 복구
     const recBtn = document.getElementById('recBtn');
