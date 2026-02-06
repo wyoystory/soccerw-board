@@ -189,7 +189,7 @@ input[type="text"], .btn-add, .color-toggle, .file-btn-box {
     .color-toggle input:checked + label.label-white { background: #fff; color: #000; border: 1px solid #333; }
 
     .btn-add { height: 30px; padding: 0 8px; font-size: 12px; border-radius: 6px; border: none; color: white; cursor: pointer; font-weight: bold; flex-shrink: 0; }
-    .file-btn-box { height: 30px; border: 1.5px solid #ccc; border-radius: 6px; margin-bottom: 8px; background: #f8f9fa; cursor: pointer; display: flex; align-items: center; width: 100%; padding: 0 5px; overflow: hidden; }
+    .file-btn-box { height: 40px; border: 1.5px solid #ccc; border-radius: 6px; margin-bottom: 8px; background: #ececec; cursor: pointer; display: flex; align-items: center; width: 100%; padding: 0 5px; overflow: hidden; }
     .setting-grid { 
 display: grid; 
 grid-template-columns: 40px 1fr !important;; 
@@ -771,7 +771,9 @@ const onMove = (e) => {
 
             if (isRecording) recordFrame();
 
+            if (el.id !== 'ball') {
             preventOverlap(el); 
+           }
           }
         };
         if (activeDrags.size > 0 && e.cancelable) e.preventDefault();
@@ -1046,7 +1048,7 @@ function autoSaveToLocal() {
         
         redList.innerHTML = '';
         redPlayers.forEach(player => {
-            // 이 부분이 중요! 위에서 만든 함수를 호출해서 리스트를 채웁니다.
+
             redList.innerHTML += createPlayerItem(player);
         });
 
@@ -1759,20 +1761,30 @@ setTimeout(() => {
 let lastRecordTime = 0;
 
 function recordFrame() {
+
 const now = Date.now();
     // 30ms(약 0.03초)마다 한 번씩만 기록하도록 제한 (데이터 최적화)
     if (now - lastRecordTime < 30) return;
 
-    const frame = {
-        ball: { x: ball.style.left, y: ball.style.top },
+// 필드의 현재 실시간 크기 파악
+    const fW = field.offsetWidth;
+    const fH = field.offsetHeight;
+
+const frame = {
+        ball: { 
+            x: (ball.offsetLeft / fW) * 100, 
+            y: (ball.offsetTop / fH) * 100 
+        },
         players: Array.from(document.querySelectorAll('.player')).map(p => ({
-            name: p.innerText, // 이름으로 매칭
-            x: p.style.left,
-            y: p.style.top
+            name: p.innerText, // 이름 기반 매칭 유지
+            id: p.id,
+            x: (p.offsetLeft / fW) * 100, 
+            y: (p.offsetTop / fH) * 100
         }))
     };
+
     recordedData.push(frame);
-   lastRecordTime = now;
+    lastRecordTime = now;
 }
 
 // 3. 시뮬레이션 재생
@@ -1805,17 +1817,19 @@ function playSimulation() {
         if (deltaTime >= interval / playbackSpeed) {
             const data = recordedData[currentFrame];
             
-            // 공 이동
-            ball.style.left = data.ball.x;
-            ball.style.top = data.ball.y;
+        const fW = field.offsetWidth;
+        const fH = field.offsetHeight;
 
+            // 공 이동
+        ball.style.left = (data.ball.x * fW / 100) + "px";
+        ball.style.top = (data.ball.y * fH / 100) + "px";
             // 선수들 이동
             data.players.forEach(pData => {
                 const playerEl = Array.from(document.querySelectorAll('.player'))
                                       .find(el => el.innerText === pData.name);
                 if (playerEl) {
-                    playerEl.style.left = pData.x;
-                    playerEl.style.top = pData.y;
+                playerEl.style.left = (pData.x * fW / 100) + "px";
+                playerEl.style.top = (pData.y * fH / 100) + "px";
                 }
             });
 
@@ -1825,7 +1839,6 @@ function playSimulation() {
         
         playbackId = requestAnimationFrame(nextFrame);
     }
-    
     playbackId = requestAnimationFrame(nextFrame);
 }
 
@@ -1859,7 +1872,6 @@ if(recBtn) {
     });
 }
 
-// [새로 추가해야 하는 함수]
 function resetToInitialState() {
     // 저장된 초기 위치 데이터(initialState)가 없으면 아무것도 안 함
     if (!initialState) return;
