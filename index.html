@@ -227,6 +227,27 @@ overflow: hidden; /* 삐져나감 방지 */
     -webkit-user-drag: element; /* 웹킷 기반 브라우저 드래그 강화 */
 }
 
+.zoom-btn {
+flex: 1;
+    width: 50px;  /* 버튼 크기 */
+    height: 65px;
+    padding: 5px;   /* 이미지 꽉 차게 패딩 제거 */
+    border-radius: 3px; /* 사각형인데 모서리만 둥글게 (취향껏 조절) */
+    border: 4px solid #ccc;
+    background: #fff;
+    cursor: pointer;
+    overflow: hidden; /* 이미지가 넘치면 자르기 */
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.zoom-icon {
+    width: 100%;   /* 버튼 안에서 이미지 크기 (80~90% 추천) */
+    height: auto; /* 비율 유지 */
+    object-fit: contain; /* 버튼 안에 예쁘게 맞춤 */
+}
+
 #redList, #blueList {
       max-height: 200px; 
       overflow-y: auto !important;
@@ -250,11 +271,39 @@ overflow: hidden; /* 삐져나감 방지 */
 
 @media screen and (max-width: 600px) {
       #bottomControls {
-        padding: 5px;
-        gap: 2px;
+        padding: 5px 10px;
+        gap: 15px;
+       display: flex;
+       flex-direction: column !important;
 }
 
-/* 게이지(슬라이더) 자체가 부모를 벗어나지 않게 설정 */
+.zoom-section {
+    display: flex;      /* 버튼들을 가로로 나열 */
+    gap: 8px;           /* 버튼 사이의 간격 */
+    width: 100%;        /* 전체 너비 사용 */
+}
+
+.zoom-btn {
+flex: 1;
+    width: 50px;  /* 버튼 크기 */
+    height: 70px;
+    padding: 10;   /* 이미지 꽉 차게 패딩 제거 */
+    border-radius: 3px; /* 사각형인데 모서리만 둥글게 (취향껏 조절) */
+    border: 4px solid #ccc;
+    background: #fff;
+    cursor: pointer;
+    overflow: hidden; /* 이미지가 넘치면 자르기 */
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.zoom-icon {
+    width: 100%;   /* 버튼 안에서 이미지 크기 (80~90% 추천) */
+    height: auto; /* 비율 유지 */
+    object-fit: contain; /* 버튼 안에 예쁘게 맞춤 */
+}
+
 input[type="range"] {
     width: 100% !important; /* 부모 너비 안에서만 작동 */
     height: 12px;
@@ -485,13 +534,13 @@ display: flex; justify-content: center;
     </button>
 
         <input type="color" id="penColorPicker" value="#000000" onchange="changePenColor(this.value)" 
-               style="width:50px; height:35px; border:none; cursor:pointer; background:none; padding:0; border-radius: 20%;">
+               style="width:55px; height:35px; border:none; cursor:pointer; background:none; padding:0; border-radius: 20%;">
     </div>
 
     <div style="display:flex; align-items:center; gap:1px;">
 
         <input type="range" id="penWidth" min="1" max="15" value="3" oninput="updateLineWidth(this.value)" 
-               style="width:50px; cursor:pointer; accent-color: #444;">
+               style="width:55px; cursor:pointer; accent-color: #444;">
     </div>
 
     <button onclick="clearCanvas()" 
@@ -678,6 +727,26 @@ style="padding: 2px 5px; border-radius: 12px; border: 1px solid #ddd; font-size:
             <div class="setting-grid"><span>경기장</span><div style="font-size:9px; color:#999; overflow:hidden; white-space:nowrap;" id="fieldNameDisplay">지정 안됨</div></div>
             <input type="file" id="fieldInput" style="display:none;" onchange="handleImageUpload(event, 'field')">
           </label>
+
+
+<div class="zoom-section" style="display:flex; justify-content:center; gap:8px; margin: 15px 0;">
+  
+  <button class="zoom-btn" onclick="zoomField('left')">
+    <img src="football_line_left.png" alt="왼쪽" class="zoom-icon">
+  </button>
+  
+  <button class="zoom-btn" onclick="zoomField('center')">
+    <img src="football_line_center.png" alt="중앙" class="zoom-icon">
+  </button>
+  
+  <button class="zoom-btn" onclick="zoomField('right')">
+    <img src="football_line_right.png" alt="오른쪽" class="zoom-icon">
+  </button>
+  
+  <button class="zoom-btn reset" onclick="zoomField('reset')">
+    <img src="football_line_black.png" alt="전체" class="zoom-icon">
+  </button>
+</div>
 
 <div class="tool-group">
 <div class="setting-grid" style="margin-bottom:8px;">
@@ -1903,8 +1972,7 @@ function resetToInitialState() {
     }, 50);
 }
 
+
   </script>
 </body>
 </html>
-
-
