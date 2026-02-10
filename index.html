@@ -852,8 +852,34 @@ style="padding: 2px 5px; border-radius: 12px; border: 1px solid #ddd; font-size:
 
   <script>
 
+// [1] 시스템 및 뷰 제어
 let currentZoom = 1.0;
+let lastTouchEnd = 0;
+let lastLoadedData = null;
 
+// [2] 팀 및 선수 설정 상태
+let teamShapes = { red: 'circle', blue: 'circle' };
+let isAlignVisible = false; 
+let isOverlapPreventionActive = false; // 겹침 방지 활성 상태 (추가 권장)
+
+// [3] 드래그 및 정렬 관련
+let dragSrcEl = null; 
+let targetX; // (참고: 이 변수는 보통 함수 내부 지역변수로 쓰이지만, 전역에 두셔도 무방합니다.)
+
+// [4] 펜(그리기) 기능 상태
+let penActive = false;
+let isDrawing = false;
+let points = [];
+
+// [5] 녹화 및 시뮬레이션 엔진
+let isRecording = false;
+let isPlaying = false;
+let recordedData = [];
+let initialState = null;
+let currentFrame = 0;
+let lastRecordTime = 0;
+let playbackId = null;
+let playbackSpeed = 1;
 
     const field = document.getElementById('field'), ball = document.getElementById('ball'), bottomControls = document.getElementById('bottomControls');
     let currentFileName = "footballW_field_data.json";
@@ -862,7 +888,9 @@ let currentZoom = 1.0;
 
     function makeDraggable(el) {
       const onStart = (e) => {
-        if (e.target.closest('#bottomControls')) return;
+if (e.target.closest('#bottomControls') || e.target.closest('#toggleMenuBtn')) {
+        return; 
+    }
 
 const touches = e.changedTouches || [e];
     for (const t of touches) {
@@ -1091,7 +1119,6 @@ function createPlayerItem(player) {
         </div>
         `;
     }
-let dragSrcEl = null; // 드래그 중인 요소를 저장할 변수
 
 // 1. 드래그 시작: 투명도 조절
 function handleDragStart(e) {
@@ -1294,69 +1321,6 @@ function loadData(event) {
     event.target.value = '';
 }
 
-    function loadData(event) {
-      const file = event.target.files[0]; if (!file || !confirm("데이터를 불러오시겠습니까?")) return;
-      const reader = new FileReader();
-      reader.onload = (e) => {
-
-const rawData = e.target.result;
-        lastLoadedData = rawData;
-
-        const d = JSON.parse(e.target.result);
-
-        document.querySelectorAll('.player, .list-item').forEach(el => el.remove());
-// 2. [추가] 필드 배경 초기화 (파일에 배경이 없더라도 기본으로 되돌림)
-    const defaultField = 'https://postfiles.pstatic.net/MjAyNjAxMjlfMjI1/MDAxNzY5NjM1Mjc0NjQ5.502_CqNalGrTYu6ZLubeKv3k_Yi01fCGmv4_tRIq_a4g.BvhqNdBmteUb3ZSa07vyILSugnFty_RPVM18IN9cxYAg.PNG/field.png?type=w580';
-    field.style.backgroundImage = `url('${defaultField}')`;
-    document.getElementById('fieldNameDisplay').innerText = "지정 안됨";
-    persistentImages.field = null; // 메모리상의 배경 데이터도 초기화
-
-        if (d.images) { 
-          Object.assign(persistentImages, d.images); 
-
-// loadData 함수 내부의 d.images.field 처리 부분
-if (d.images.field) {
-  persistentImages.field = d.images.field; // 메모리에 저장
-  const bgLayer = document.getElementById('field-bg');
-  if(bgLayer) {
-    bgLayer.style.backgroundImage = `url(${d.images.field})`;
-  }
-  document.getElementById('fieldNameDisplay').innerText = "불러온 배경";
-}
-
-      if (d.images.red) setExternalImage('red', d.images.red);
-      if (d.images.blue) setExternalImage('blue', d.images.blue);
- 
-if (d.images.ball) {
-        ball.style.backgroundImage = `url('${d.images.ball}')`;
-        ball.style.backgroundColor = 'transparent';
-        ball.style.backgroundSize = 'cover';
-        if(document.getElementById('ballFileName')) {
-            document.getElementById('ballFileName').innerText = "저장된 공";
-        }
-      }
-    }  
-
-        if(d.players) d.players.forEach(p => addPlayer(p.team, p.name, p.x, p.y, p.color));
-        if (d.ball) { ball.style.left = d.ball.x; ball.style.top = d.ball.y; if(d.ball.size) {
-    ball.style.width = d.ball.size;
-    ball.style.height = d.ball.size;
-const ballSlider = document.getElementById('ballSize');
-    if (ballSlider) {
-ballSlider.value = parseInt(d.ball.size); 
-    }
-  }
-if (d.simulation) {
-    recordedData = d.simulation;
-console.log("시뮬레이션 데이터 불러오기 완료:", recordedData.length, "프레임");
-        } else {
-            recordedData = []; // 데이터가 없으면 초기화
-        }
-}
-      };
-      reader.readAsText(file);
-      event.target.value = '';
-    }
 
  function takeScreenshot() {
   const wasCollapsed = bottomControls.classList.contains('collapsed');
@@ -1494,7 +1458,7 @@ document.addEventListener('touchstart', function (e) {
 }, { passive: false });
 
 // 더블 탭 확대 방지
-let lastTouchEnd = 0;
+
 document.addEventListener('touchend', function (e) {
   const now = (new Date()).getTime();
   if (now - lastTouchEnd <= 300) {
@@ -1521,7 +1485,7 @@ function updateAlignButtons() {
         btn.classList.toggle('hidden', !isVisible);
     });
 }
-let isAlignVisible = false; 
+
 
 function toggleAlignButtons(show) {
 isAlignVisible = show; 
@@ -1554,7 +1518,7 @@ function alignPlayers(team, isReverse = false) {
     const gap = countInThisCol > 1 ? (endY - startY) / (countInThisCol - 1) : 0;
 
     // X축 위치 결정 (열이 추가될 때마다 안쪽으로 7%씩 들어옴)
-    let targetX;
+
     if (team === 'red') {
       const baseRedX = isReverse ? 90 : 10;
       const offset = colIndex * 8; // 2열은 8% 더 안쪽으로
@@ -1592,13 +1556,13 @@ const targets = document.querySelectorAll('.player, .ball');
     const distance = Math.sqrt(dx * dx + dy * dy);
 
     // 선수 지름의 90% 정도 거리 안에 들어오면 밀어냄
-    const minDistance = activeRect.width * 0.8; 
+    const minDistance = activeRect.width * 0.95; 
     
     if (distance < minDistance && distance > 0) {
       const angle = Math.atan2(dy, dx);
-      const push = (minDistance - distance);
+      const push = (minDistance - distance) * 0.9;
 
-target.style.transition = "none";
+target.style.transition = "left 0.1s linear, top 0.1s linear";
 
       const pushX = Math.cos(angle) * push;
       const pushY = Math.sin(angle) * push;
@@ -1612,16 +1576,15 @@ target.style.transition = "none";
       target.style.top = Math.max(0, Math.min(100, newY)) + "%";
 
 setTimeout(() => {
-          target.style.transition = "left 0.4s ease-out, top 0.4s ease-out";
+          target.style.transition = "left 0.15s ease-out, top 0.15s ease-out";
       }, 100);
     }
   });
 }
 
-let lastLoadedData = null;
 
-// 팀별 현재 모양 상태 저장 (기본값 circle)
-let teamShapes = { red: 'circle', blue: 'circle' };
+
+
 
 function changeShape(team, shape) {
     // 1. 상태 업데이트
@@ -1674,34 +1637,46 @@ function toggleSimulationBar(checked) {
     }
 }
 
-let penActive = false;
+
 const canvas = document.getElementById('drawingCanvas');
 const ctx = canvas.getContext('2d');
 
-
 function zoomField(zone) {
-        const container = document.getElementById('field-container');
-        if (!container) return;
+    const field = document.getElementById('field'); 
+    const container = document.getElementById('field-container');
+    if (!field || !container) return;
 
-switch(zone) {
-        case 'left':
-            currentZoom = 1.7;
-            container.style.transform = `scale(${currentZoom}) translate(0, 0)`;
-            break;
-        case 'center':
-            currentZoom = 1.7;
-            // 필드 너비의 약 25%만큼 왼쪽으로 밀어서 중앙 노출
-            container.style.transform = `scale(${currentZoom}) translate(-20.5%, 0)`;
-            break;
-        case 'right':
-            currentZoom = 1.7;
-            // 필드 너비의 약 50%만큼 왼쪽으로 밀어서 오른쪽 노출
-            container.style.transform = `scale(${currentZoom}) translate(-41%, 0)`;
-            break;
-        case 'reset':
-            currentZoom = 1.7;
-            container.style.transform = `scale(1) translate(0, 0)`;
-            break;
+    if (zone === 'reset') {
+        field.style.transform = "scale(1)";
+        field.style.transformOrigin = "top center";
+        field.style.marginBottom = "0px"; // 리셋 시 여백 제거
+        container.style.overflow = "hidden";
+        container.scrollTo(0, 0);
+    } else {
+        container.style.overflowY = "auto";
+        container.style.overflowX = "hidden"; 
+
+        field.style.transition = "transform 0.5s ease-out";
+        
+        // 1. 배율 설정 (시야를 넓게 보려면 1.3~1.5 추천)
+        const zoomLevel = 2.4; 
+        field.style.transform = `scale(${zoomLevel})`;
+
+        // 2. [핵심] 현재 기기 화면 높이만큼 하단 여백을 자동으로 계산
+        // 화면 높이(vh)만큼 여백을 주면, 경기장 맨 아래쪽 라인을 화면 맨 위까지 끌어올릴 수 있습니다.
+        const screenHeight = window.innerHeight * 2.0;
+        field.style.marginBottom = `${screenHeight * 0.2}px`; // 화면 높이의 80% 정도를 여유 공간으로 확보
+
+        // 3. 구역별 기준점 설정
+        switch(zone) {
+            case 'left': field.style.transformOrigin = "top left"; break;
+            case 'center': field.style.transformOrigin = "top center"; break;
+            case 'right': field.style.transformOrigin = "top right"; break;
+        }
+
+        setTimeout(() => {
+            container.scrollTop = 0;
+        }, 50);
     }
 }
 
@@ -1762,7 +1737,7 @@ function stopDrawing() {
 
 // --- 펜 기능 핵심 로직 ---
 
-let isDrawing = false;
+
 
 function updateLineWidth(v) { if(ctx) {
         ctx.lineWidth = v;
@@ -1833,7 +1808,7 @@ window.addEventListener('touchmove', (e) => {
 window.addEventListener('touchend', () => { isDrawing = false; });
 
 
-let points = [];
+
 
 function startDrawing(e) {
     if (!penActive) return;
@@ -1876,13 +1851,7 @@ function stopDrawing() {
     isDrawing = false; 
 }
 
-// --- [녹화 및 시뮬레이션 핵심 로직] ---
-let recordedData = [];
-let isRecording = false;
-let isPlaying = false;
-let playbackId = null;
-let currentFrame = 0;
-let initialState = null;
+
 
 // 1. 녹화 시작/중지 토글
 function startRecording() {
@@ -1917,8 +1886,6 @@ setTimeout(() => {
     }
 }
 
-// 2. 매 순간의 좌표를 기록하는 함수
-let lastRecordTime = 0;
 
 function recordFrame() {
 
@@ -1947,8 +1914,7 @@ const frame = {
     lastRecordTime = now;
 }
 
-// 3. 시뮬레이션 재생
-let playbackSpeed = 1; // 기본 1배속
+
 
 function playSimulation() {
     if (recordedData.length === 0) return alert("녹화된 데이터가 없습니다.");
