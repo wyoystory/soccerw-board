@@ -141,7 +141,8 @@ transition: opacity 0.3s ease;
       z-index: 1001; 
 margin-top: 10px; 
 touch-action: auto;
-      overflow-x: auto; /* 너무 좁으면 가로 스크롤 */
+max-height: 70vh;           /* 화면 높이의 70%까지만 커지도록 제한 */
+overflow-y: auto;           /* 세로로 길어지면 내부 스크롤 생성 */
 -webkit-overflow-scrolling: touch;
     }
     #bottomControls.collapsed { display: none; }
@@ -574,64 +575,47 @@ display: flex; justify-content: center;
 </head>
 <body>
 
-<div class="top-toolbar">
-  <div class="side-box left" style="display: flex; gap: 5px;">
-<div id="penToolbar" style="display:none; align-items:center; gap:12px; padding: 4px 8px; border-radius: 3px; border: 1px solid #e0e0e0; box-shadow: 0 4px 12px rgba(0,0,0,0.12); margin-right: 15px;">
-    
-    <div style="display:flex; align-items:center; position: relative; gap: 10px;">
-    <button id="penToggleBtn" onclick="togglePenMode()" 
-            style="padding:5px 13px; border-radius:4px; border:none; background:#ffffff; color:white; font-size:16px; font-weight:bold; cursor:pointer; transition: all 0.3s ease; box-shadow: 0 2px 4px rgba(0,0,0,0.2);">
-        🖍️
-    </button>
+<div class="top-toolbar" style="width: 100%; padding: 5px; display: flex; justify-content: center;">
+    <div id="mainToolContainer" style="
+        display: flex; 
+        flex-wrap: wrap;       /* 핵심: 공간 부족 시 다음 줄로 이동 */
+        justify-content: center; /* 핵심: 항상 가운데 정렬 */
+        align-items: center; 
+        gap: 8px;              /* 버튼 사이 간격 */
+        width: 95%; 
+        max-width: 800px;      /* 너무 퍼지지 않게 제한 */
+    ">
+        <button id="toggleMenuBtn" onclick="toggleMenu()" class="menu-btn" style="font-size: 26px; width: 45px; height: 45px; background: white; border: none; border-radius: 10px; box-shadow: 0 2px 8px rgba(0,0,0,0.1); cursor: pointer; flex-shrink: 0;">⚙️</button>
 
-        <input type="color" id="penColorPicker" value="#000000" onchange="changePenColor(this.value)" 
-               style="width:55px; height:35px; border:none; cursor:pointer; background:none; padding:0; border-radius: 20%;">
+        <div class="red-btns hidden" style="display: flex; gap: 4px; flex-shrink: 0;">
+            <button id="redAlignBtn" class="align-btn" style="background: #000; color: #e74c3c; padding: 5px 10px; border-radius: 4px;" onclick="alignPlayers('red', false)">◀ll</button>
+            <button class="align-btn" style="background: #000; color: #e74c3c; padding: 5px 10px; border-radius: 4px;" onclick="alignPlayers('red', true)">ll▶</button>
+        </div>
+
+        <div class="blue-btns hidden" style="display: flex; gap: 4px; flex-shrink: 0;">
+            <button class="align-btn" style="background: #000; color: #3498db; padding: 5px 10px; border-radius: 4px;" onclick="alignPlayers('blue', true)">◀ll</button>
+            <button id="blueAlignBtn" class="align-btn" style="background: #000; color: #3498db; padding: 5px 10px; border-radius: 4px;" onclick="alignPlayers('blue', false)">ll▶</button>
+        </div>
+
+        <div id="penToolbar" style="display:none; align-items:center; gap:8px; padding: 1px 8px; border-radius: 8px; border: 1px solid #ddd; background: white; flex-shrink: 0;">
+            <button id="penToggleBtn" onclick="togglePenMode()" style="border:none; background:none; font-size:20px;">🖍️</button>
+            <input type="color" id="penColorPicker" value="#000000" onchange="changePenColor(this.value)" style="width:40px; height:40px; border:none; cursor:pointer;">
+            <input type="range" id="penWidth" min="1" max="15" value="3" oninput="updateLineWidth(this.value)" style="width:60px !important;">
+            <button onclick="clearCanvas()" style="border:none; background:none; font-size:20px;">❌</button>
+        </div>
+
+
+
+        <div id="simControlBar" class="sim-bar-horizontal hidden" style="display:none; align-items:center; gap:8px; padding: 5px 8px; border-radius: 8px; border: 1px solid #ddd; background: white; flex-shrink: 0;">
+            <button onclick="playSimulation()" class="sim-btn" style="width: 45px; height: 32px; font-size: 18px; "><i class="fas fa-play"></i></button>
+            <button onclick="pauseSimulation()" class="sim-btn" style="width: 45px; height: 32px; font-size: 18px;"><i class="fas fa-pause"></i></button>
+            <button onclick="stopSimulation()" class="sim-btn" style="width: 45px; height: 32px; font-size: 18px;"><i class="fas fa-stop"></i></button>
+            <button onclick="startRecording()" class="sim-btn" style="width: 45px; height: 32px; font-size: 18px;"><i class="fas fa-circle" style="color:red;"></i></button>
+        </div>
     </div>
-
-    <div style="display:flex; align-items:center; gap:1px;">
-
-        <input type="range" id="penWidth" min="1" max="15" value="3" oninput="updateLineWidth(this.value)" 
-               style="width:55px; cursor:pointer; accent-color: #444;">
-    </div>
-
-    <button onclick="clearCanvas()" 
-            style="padding:5px 13px; border-radius:4px; border:none; background:#ffffff; color:#333; font-size:16px; font-weight:bold; cursor:pointer; transition: all 0.2s;">
-        ❌
-    </button>
 </div>
-    <button id="redAlignBtn" class="align-btn red-btns hidden" style="background: #000; color: #e74c3c; padding:5px 8px 8px 10px; font-weight: bold;" onclick="alignPlayers('red', false)">◀ll</button>               
-    
-    <button class="align-btn red-btns hidden" style="background: #000; color: #e74c3c; padding:5px 8px 8px 10px; font-weight: bold;" onclick="alignPlayers('red', true)">ll▶</button>
-  </div>
-
-  <div class="center-box">
-    <button id="toggleMenuBtn" onclick="toggleMenu()"class="menu-btn" style="font-size: 30px;">⚙️</button>
-  </div>
-
-  <div class="side-box right" style="display: flex; gap: 5px;">
-    <button class="align-btn blue-btns hidden" style="background: #000; color: #3498db; padding:5px 8px 8px 10px; font-weight: bold;" onclick="alignPlayers('blue', true)">◀ll</button>
-    
-    <button id="blueAlignBtn" class="align-btn blue-btns hidden" style="background: #000; color: #3498db; padding:5px 8px 8px 10px; font-weight: bold;" onclick="alignPlayers('blue', false)">ll▶</button>
 
 
-<div id="simControlBar" class="sim-bar-horizontal hidden" style="display:none; align-items:center; gap:12px; padding: 5px 10px; border-radius: 3px; border: 1px solid #e0e0e0; box-shadow: 0 4px 12px rgba(0,0,0,0.12); margin-left: 15px; ">
-
-  <button id="playBtn" class="sim-btn" onclick="playSimulation()" title="재생"
-style="padding:4px 25px; border-radius:4px; border:none; background:#ffffff; color:#333; font-size:16px; font-weight:bold; cursor:pointer; transition: all 0.2s; box-shadow: 0 2px 4px rgba(0,0,0,0.2);">
-    <i class="fas fa-play"></i>
-  </button>
-  <button id="pauseBtn" class="sim-btn" onclick="pauseSimulation()" title="일시정지"style="padding:4px 25px; border-radius:4px; border:none; background:#ffffff; color:#333; font-size:16px; font-weight:bold; cursor:pointer; transition: all 0.2s; box-shadow: 0 2px 4px rgba(0,0,0,0.2);">
-    <i class="fas fa-pause"></i>
-  </button>
-  <button id="stopBtn" class="sim-btn" onclick="stopSimulation()" title="정지"style="padding:4px 25px; border-radius:4px; border:none; background:#ffffff; color:#333; font-size:16px; font-weight:bold; cursor:pointer; transition: all 0.2s; box-shadow: 0 2px 4px rgba(0,0,0,0.2);">
-    <i class="fas fa-stop"></i>
-  </button>
-  <button id="recBtn" class="sim-btn" onclick="startRecording()" title="녹화"style="padding:4px 25px; border-radius:4px; border:none; background:#ffffff; color:#333; font-size:16px; font-weight:bold; cursor:pointer; transition: all 0.2s; box-shadow: 0 2px 4px rgba(0,0,0,0.2);">
-    <i class="fas fa-circle" style="color:#ff4d4d;"></i>
-  </button>
-</div>
-  </div>
-</div>
   <div id="field-container">
 
     <div id="field">
@@ -1659,12 +1643,12 @@ function zoomField(zone) {
         field.style.transition = "transform 0.5s ease-out";
         
         // 1. 배율 설정 (시야를 넓게 보려면 1.3~1.5 추천)
-        const zoomLevel = 2.4; 
+        const zoomLevel = 2.5; 
         field.style.transform = `scale(${zoomLevel})`;
 
         // 2. [핵심] 현재 기기 화면 높이만큼 하단 여백을 자동으로 계산
         // 화면 높이(vh)만큼 여백을 주면, 경기장 맨 아래쪽 라인을 화면 맨 위까지 끌어올릴 수 있습니다.
-        const screenHeight = window.innerHeight * 2.0;
+        const screenHeight = window.innerHeight * 2.5;
         field.style.marginBottom = `${screenHeight * 0.2}px`; // 화면 높이의 80% 정도를 여유 공간으로 확보
 
         // 3. 구역별 기준점 설정
@@ -1701,7 +1685,7 @@ function togglePenMode() {
 
     if (penActive) {
         btn.innerHTML = "🖍️";
-btn.style.fontSize = "15px";
+btn.style.fontSize = "20px";
         btn.style.background = "#e74c3c";
      
         canvas.style.zIndex = "100"; // 확실하게 위로 올림   
@@ -1716,7 +1700,7 @@ const container = document.getElementById('field-container');
         canvas.height = container.offsetHeight;
     } else {
         btn.innerHTML = "🖍️";
-btn.style.fontSize = "15px";
+btn.style.fontSize = "20px";
         btn.style.background = "#ffffff";
 
 // 2. 캔버스를 비활성화 (아래 요소 클릭 가능하게)
