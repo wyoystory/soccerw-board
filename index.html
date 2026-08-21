@@ -34,8 +34,11 @@
       background-position: center;
       background-attachment: fixed;
       font-family: 'Pretendard', sans-serif; 
-      overscroll-behavior-y: none;
-      overflow-x: hidden; width: 100%; touch-action: pan-y;
+overscroll-behavior: none;   /* X/Y축 전체 바운스 및 새로고침 차단 */
+  overscroll-behavior-y: none; 
+  touch-action: none;          /* 브라우저 기본 제스처(새로고침/스크롤) 완전 차단 */
+  
+  overflow-x: hidden; width: 100%;
     }
     
 /* 정렬 구역 기본 상태: 숨김 */
@@ -1011,31 +1014,32 @@ window.addEventListener('DOMContentLoaded', () => {
     }
 });
 
-// [2] 드래그 앤 드롭 엔진
+// Map이 선언되어 있지 않다면 전역/상단에 유지
+if (typeof activeDrags === 'undefined') {
+    var activeDrags = new Map();
+}
+
+// [2] 드래그 앤 드롭 엔진 (스마트폰 확대 보정 완료)
 function makeDraggable(el) {
   const onStart = (e) => {
     if (e.target.closest('#bottomControls') || e.target.closest('#toggleMenuBtn')) return;
 
-    // 필드 Pan 드래그 이벤트로 전파 방지
     if (e.cancelable) e.stopPropagation();
 
-    const touches = e.changedTouches || [e];
-    for (const t of touches) {
+    const touches = e.touches || [e];
+    for (let i = 0; i < touches.length; i++) {
+      const t = touches[i];
       const id = t.identifier !== undefined ? t.identifier : 'mouse';
       
-      // 스케일 및 이동 변수 안전하게 가져오기
-      const scale = (typeof zoomScale !== 'undefined' && zoomScale > 0) ? zoomScale : 1.0;
-      const elRect = el.getBoundingClientRect();
-
-      // 마우스/터치 포인트와 요소 중심점 사이의 거리 (화면 픽셀 거리)
-      const elCenterX = elRect.left + elRect.width / 2;
-      const elCenterY = elRect.top + elRect.height / 2;
+      // 터치 이벤트 대상이 현재 요소(el) 또는 내부 요소인 경우만 시작
+      if (e.type === 'touchstart' && !el.contains(t.target)) continue;
 
       activeDrags.set(id, { 
         target: el, 
-        // 줌 비율을 나누어 순수 원본 픽셀 단위 offset 계산
-        offsetX: (t.clientX - elCenterX) / scale, 
-        offsetY: (t.clientY - elCenterY) / scale 
+        startX: t.clientX,
+        startY: t.clientY,
+        initialLeftPercent: parseFloat(el.style.left) || 50,
+        initialTopPercent: parseFloat(el.style.top) || 50
       });
       
       el.style.transition = "none";
@@ -1044,35 +1048,43 @@ function makeDraggable(el) {
   };
 
   const onMove = (e) => {
-    const touches = e.changedTouches || [e];
-    for (const t of touches) {
+    const touches = e.touches || [e];
+    for (let i = 0; i < touches.length; i++) {
+      const t = touches[i];
       const id = t.identifier !== undefined ? t.identifier : 'mouse';
       const d = activeDrags.get(id);
+      
       if (d && d.target === el) {
-        // field-content 요소 기준 (없으면 field)
         const content = document.getElementById('field-content') || document.getElementById('field');
         const cr = content.getBoundingClientRect();
         const scale = (typeof zoomScale !== 'undefined' && zoomScale > 0) ? zoomScale : 1.0;
 
-        // field-content 상에서의 마우스 포인터 relative 좌표 (scale 보정)
-        const relativeX = (t.clientX - cr.left) / scale - d.offsetX;
-        const relativeY = (t.clientY - cr.top) / scale - d.offsetY;
-
-        // field-content의 원본 크기 (unscaled size)
+        // 원본(unscaled) 픽셀 단위 크기
         const unscaledWidth = cr.width / scale;
         const unscaledHeight = cr.height / scale;
 
-        // 백분율(%) 좌표 계산
-        let x = (relativeX / unscaledWidth) * 100;
-        let y = (relativeY / unscaledHeight) * 100;
+        // 터치 이동 변위 (화면 픽셀 / scale = 순수 필드 픽셀)
+        const deltaX = (t.clientX - d.startX) / scale;
+        const deltaY = (t.clientY - d.startY) / scale;
+
+        // 백분율(%) 변환
+        const deltaPercentX = (deltaX / unscaledWidth) * 100;
+        const deltaPercentY = (deltaY / unscaledHeight) * 100;
+
+        let x = d.initialLeftPercent + deltaPercentX;
+        let y = d.initialTopPercent + deltaPercentY;
         
-        el.style.left = Math.max(0, Math.min(100, x)) + "%";
-        el.style.top = Math.max(0, Math.min(100, y)) + "%";
+        // 필드 범위 제한 (0% ~ 100%)
+        x = Math.max(0, Math.min(100, x));
+        y = Math.max(0, Math.min(100, y));
+
+        el.style.left = x + "%";
+        el.style.top = y + "%";
 
         if (typeof isRecording !== 'undefined' && isRecording && typeof recordFrame === 'function') {
             recordFrame();
         }
-        if (el.id !== 'ball' && typeof preventOverlap === 'function') {
+        if (typeof preventOverlap === 'function') {
             preventOverlap(el); 
         }
       }
@@ -1082,23 +1094,29 @@ function makeDraggable(el) {
 
   const onEnd = (e) => {
     const touches = e.changedTouches || [e];
-    for (const t of touches) { 
-      activeDrags.delete(t.identifier !== undefined ? t.identifier : 'mouse'); 
+    for (let i = 0; i < touches.length; i++) { 
+      const t = touches[i];
+      const id = t.identifier !== undefined ? t.identifier : 'mouse';
+      activeDrags.delete(id); 
     }
-    el.style.zIndex = el.classList.contains('ball') ? 2000 : 5;
-    setTimeout(() => { 
-      el.style.transition = "left 0.4s ease-out, top 0.4s ease-out"; 
-    }, 10);
+    
+    if (activeDrags.size === 0) {
+      el.style.zIndex = (el.id === 'ball' || el.classList.contains('ball')) ? 2000 : 5;
+      setTimeout(() => { 
+        el.style.transition = "left 0.4s ease-out, top 0.4s ease-out"; 
+      }, 10);
+    }
   };
 
   el.addEventListener('mousedown', onStart);
   window.addEventListener('mousemove', onMove);
   window.addEventListener('mouseup', onEnd);
+  
   el.addEventListener('touchstart', onStart, { passive: false });
   window.addEventListener('touchmove', onMove, { passive: false });
   window.addEventListener('touchend', onEnd);
+  window.addEventListener('touchcancel', onEnd);
 }
-
 
 function changeTeamNameColor(team, color) {
   document.querySelectorAll(`.player[data-team="${team}"]`).forEach(p => p.style.color = color);
@@ -2144,13 +2162,12 @@ window.zoomField = function(position) {
     }
 };
 
-// 모바일 브라우저 당겨서 새로고침(Pull-to-Refresh) 방지
+
+// 모바일 브라우저 당겨서 새로고침(Pull-to-Refresh) 완전 차단
 document.addEventListener('touchmove', function(e) {
-  // 1.5배 확대 상태이거나 필드를 이동 중일 때 새로고침 동작 차단
-  if (typeof zoomScale !== 'undefined' && zoomScale > 1.0) {
-    if (e.cancelable) {
-      e.preventDefault();
-    }
+  // 터치 위치가 필드 또는 작전판 전체 영역 내부일 때 새로고침 동작 차단
+  if (e.cancelable) {
+    e.preventDefault();
   }
 }, { passive: false });
 
