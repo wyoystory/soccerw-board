@@ -1610,59 +1610,69 @@ function toggleOverlap() {
 }
 
 function toggleOverlapPrevention(show) { isOverlapPreventionActive = show; }
+// 프레임 중복 계산 방지를 위한 변수
+let isOverlapPending = false;
 
 function preventOverlap(activeEl) {
   if (typeof isOverlapPreventionActive !== 'undefined' && !isOverlapPreventionActive) return;
-  
-  const targetField = typeof field !== 'undefined' && field ? field : document.getElementById('field');
-  const targets = document.querySelectorAll('.player, .ball, #ball'); 
-  const activeRect = activeEl.getBoundingClientRect();
-  
-  // 반지름 및 중심 좌표 기준 설정
-  const radius = activeRect.width / 2;
-  const activeCenterX = activeRect.left + radius;
-  const activeCenterY = activeRect.top + radius;
-  
-  // 두 요소 간 최소 유지 거리 (반지름의 1.5배)
-  const minDistance = radius * 1.5;
+  if (isOverlapPending) return; // 모바일 렌더링 과부하 차단
 
-  targets.forEach(target => {
-    if (target === activeEl) return;
+  isOverlapPending = true;
+
+  // 스마트폰 화면 주사율(60Hz~120Hz)에 맞춘 프레임 최적화
+  requestAnimationFrame(() => {
+    isOverlapPending = false;
+
+    const targetField = typeof field !== 'undefined' && field ? field : document.getElementById('field');
+    const targets = document.querySelectorAll('.player, .ball, #ball'); 
+    const activeRect = activeEl.getBoundingClientRect();
     
-    const targetRect = target.getBoundingClientRect();
-    const targetCenterX = targetRect.left + (targetRect.width / 2);
-    const targetCenterY = targetRect.top + (targetRect.height / 2);
+    const radius = activeRect.width / 2;
+    const activeCenterX = activeRect.left + radius;
+    const activeCenterY = activeRect.top + radius;
     
-    const dx = activeCenterX - targetCenterX;
-    const dy = activeCenterY - targetCenterY;
-    const distance = Math.hypot(dx, dy);
-    
-    if (distance < minDistance && distance > 0) {
-      const angle = Math.atan2(dy, dx);
+    // 자연스러운 물리 충돌 판단 거리
+    const minDistance = radius * 0.5;
+
+    targets.forEach(target => {
+      if (target === activeEl) return;
       
-      // 밀어내는 힘 (드래그 시 중첩 튕김 방지를 위해 0.15로 설정)
-      const push = (minDistance - distance) * 0.15;
+      const targetRect = target.getBoundingClientRect();
+      const targetCenterX = targetRect.left + (targetRect.width / 2);
+      const targetCenterY = targetRect.top + (targetRect.height / 2);
+      
+      const dx = activeCenterX - targetCenterX;
+      const dy = activeCenterY - targetCenterY;
+      const distance = Math.hypot(dx, dy);
+      
+      if (distance < minDistance && distance > 0) {
+        const angle = Math.atan2(dy, dx);
+        
+        // ★ 컴퓨터와 동일한 부드러운 쿠션감을 주는 완충 계수 (0.05)
+        const overlap = minDistance - distance;
+        const push = overlap * 0.05;
 
-      // ★ 스마트폰 튕김의 주원인인 transition을 밀어내는 순간 끄기
-      target.style.transition = "none";
+        // 즉각적 반응을 위해 트랜지션 해제
+        target.style.transition = "none";
 
-      const pushX = Math.cos(angle) * push;
-      const pushY = Math.sin(angle) * push;
-      const fr = targetField.getBoundingClientRect();
+        const pushX = Math.cos(angle) * push;
+        const pushY = Math.sin(angle) * push;
+        const fr = targetField.getBoundingClientRect();
 
-      // scale 보정 포함 필드 대비 백분율(%) 계산
-      const currentScale = (typeof zoomScale !== 'undefined' && zoomScale > 0) ? zoomScale : 1.0;
-      const unscaledWidth = fr.width / currentScale;
-      const unscaledHeight = fr.height / currentScale;
+        const currentScale = (typeof zoomScale !== 'undefined' && zoomScale > 0) ? zoomScale : 1.0;
+        const unscaledWidth = fr.width / currentScale;
+        const unscaledHeight = fr.height / currentScale;
 
-      let newX = ((targetRect.left - pushX - fr.left + (targetRect.width / 2)) / currentScale / unscaledWidth) * 100;
-      let newY = ((targetRect.top - pushY - fr.top + (targetRect.height / 2)) / currentScale / unscaledHeight) * 100;
+        let newX = ((targetRect.left - pushX - fr.left + (targetRect.width / 2)) / currentScale / unscaledWidth) * 100;
+        let newY = ((targetRect.top - pushY - fr.top + (targetRect.height / 2)) / currentScale / unscaledHeight) * 100;
 
-      target.style.left = Math.max(0, Math.min(100, newX)) + "%";
-      target.style.top = Math.max(0, Math.min(100, newY)) + "%";
-    }
+        target.style.left = Math.max(0, Math.min(100, newX)) + "%";
+        target.style.top = Math.max(0, Math.min(100, newY)) + "%";
+      }
+    });
   });
 }
+
 function preventOverlap(draggedEl) {
     // 겹침 방지 스위치 체크
     if (typeof isOverlapPreventionActive === 'undefined' || !isOverlapPreventionActive) return;
