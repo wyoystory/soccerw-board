@@ -1014,26 +1014,22 @@ window.addEventListener('DOMContentLoaded', () => {
     }
 });
 
-// Map이 선언되어 있지 않다면 전역/상단에 유지
-if (typeof activeDrags === 'undefined') {
-    var activeDrags = new Map();
-}
 
-// [2] 드래그 앤 드롭 엔진 (스마트폰 확대 보정 완료)
+// [2] 드래그 앤 드롭 엔진 (보정 완료)
 function makeDraggable(el) {
   const onStart = (e) => {
     if (e.target.closest('#bottomControls') || e.target.closest('#toggleMenuBtn')) return;
 
+    // 필드 Pan 드래그 이벤트로 전파 방지
     if (e.cancelable) e.stopPropagation();
 
-    const touches = e.touches || [e];
-    for (let i = 0; i < touches.length; i++) {
-      const t = touches[i];
-      const id = t.identifier !== undefined ? t.identifier : 'mouse';
-      
-      // 터치 이벤트 대상이 현재 요소(el) 또는 내부 요소인 경우만 시작
+    const touches = e.touches || e.changedTouches || [e];
+    for (const t of touches) {
+      // 터치 이벤트 발생 시 해당 요소(또는 내부)를 터치한 것이 아니면 패스 (공/선수 구분)
       if (e.type === 'touchstart' && !el.contains(t.target)) continue;
 
+      const id = t.identifier !== undefined ? t.identifier : 'mouse';
+      
       activeDrags.set(id, { 
         target: el, 
         startX: t.clientX,
@@ -1043,27 +1039,28 @@ function makeDraggable(el) {
       });
       
       el.style.transition = "none";
-      el.style.zIndex = 1000;
+      // 공인 경우 최상단 z-index 부여
+      const isBall = (el.id === 'ball' || el.classList.contains('ball'));
+      el.style.zIndex = isBall ? 2000 : 1000;
     }
   };
 
   const onMove = (e) => {
-    const touches = e.touches || [e];
-    for (let i = 0; i < touches.length; i++) {
-      const t = touches[i];
+    const touches = e.touches || e.changedTouches || [e];
+    for (const t of touches) {
       const id = t.identifier !== undefined ? t.identifier : 'mouse';
       const d = activeDrags.get(id);
-      
       if (d && d.target === el) {
+        // field-content 요소 기준 (없으면 field)
         const content = document.getElementById('field-content') || document.getElementById('field');
         const cr = content.getBoundingClientRect();
         const scale = (typeof zoomScale !== 'undefined' && zoomScale > 0) ? zoomScale : 1.0;
 
-        // 원본(unscaled) 픽셀 단위 크기
+        // field-content의 원본 크기 (unscaled size)
         const unscaledWidth = cr.width / scale;
         const unscaledHeight = cr.height / scale;
 
-        // 터치 이동 변위 (화면 픽셀 / scale = 순수 필드 픽셀)
+        // 터치 시작점 대비 이동 거리(화면 픽셀 / scale = 순수 필드 픽셀)
         const deltaX = (t.clientX - d.startX) / scale;
         const deltaY = (t.clientY - d.startY) / scale;
 
@@ -1071,6 +1068,7 @@ function makeDraggable(el) {
         const deltaPercentX = (deltaX / unscaledWidth) * 100;
         const deltaPercentY = (deltaY / unscaledHeight) * 100;
 
+        // 시작 백분율 + 이동 백분율
         let x = d.initialLeftPercent + deltaPercentX;
         let y = d.initialTopPercent + deltaPercentY;
         
@@ -1084,6 +1082,7 @@ function makeDraggable(el) {
         if (typeof isRecording !== 'undefined' && isRecording && typeof recordFrame === 'function') {
             recordFrame();
         }
+        // 공과 선수 모두 겹침 방지 처리 연동
         if (typeof preventOverlap === 'function') {
             preventOverlap(el); 
         }
@@ -1094,14 +1093,13 @@ function makeDraggable(el) {
 
   const onEnd = (e) => {
     const touches = e.changedTouches || [e];
-    for (let i = 0; i < touches.length; i++) { 
-      const t = touches[i];
-      const id = t.identifier !== undefined ? t.identifier : 'mouse';
-      activeDrags.delete(id); 
+    for (const t of touches) { 
+      activeDrags.delete(t.identifier !== undefined ? t.identifier : 'mouse'); 
     }
     
     if (activeDrags.size === 0) {
-      el.style.zIndex = (el.id === 'ball' || el.classList.contains('ball')) ? 2000 : 5;
+      const isBall = (el.id === 'ball' || el.classList.contains('ball'));
+      el.style.zIndex = isBall ? 2000 : 5;
       setTimeout(() => { 
         el.style.transition = "left 0.4s ease-out, top 0.4s ease-out"; 
       }, 10);
@@ -1117,6 +1115,7 @@ function makeDraggable(el) {
   window.addEventListener('touchend', onEnd);
   window.addEventListener('touchcancel', onEnd);
 }
+
 
 function changeTeamNameColor(team, color) {
   document.querySelectorAll(`.player[data-team="${team}"]`).forEach(p => p.style.color = color);
