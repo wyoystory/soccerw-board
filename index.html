@@ -1628,7 +1628,7 @@ function preventOverlap(activeEl) {
     
     if (distance < minDistance && distance > 0) {
       const angle = Math.atan2(dy, dx);
-      const push = (minDistance - distance) * 0.1;
+      const push = (minDistance - distance) * 0.04;
       target.style.transition = "left 0.1s linear, top 0.1s linear";
 
       const pushX = Math.cos(angle) * push;
