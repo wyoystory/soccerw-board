@@ -61,33 +61,69 @@
 #redAlignBtn { color: var(--red-color); }
 #blueAlignBtn { color: var(--blue-color); }
 
-/* 필드 조절 */
-    #field { 
-width: 100%; 
-max-width: calc(95vh * 1.414); /* 세로 높이 기준으로 가로가 너무 길어지지 않게 방지 */
-aspect-ratio: 1.414 / 1; 
-max-height: 85vh;
-/* ------------- 축구장 필드 이미지 ------------------ */
-background-color: #27ae60; 
-background-size: 100% 100%; 
-border: 4px solid #fff; 
-position: relative; z-index: 1; 
-overflow: hidden; 
+#drawingCanvas {
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+z-index: 3;
+    pointer-events: none; /* 기본 상태에서는 아래 플레이어 클릭 가능하도록 설정 */
 }
+
+#field-container, #field, #field-content, #field * {
+    -webkit-user-drag: none;
+    -khtml-user-drag: none;
+    -moz-user-drag: none;
+    -o-user-drag: none;
+    user-drag: none;
+}
+
+#field-container {
+width: 100%;
+    height: calc(100dvh - 110px); 
+    max-width: 100vw;
+    margin: 0 auto;
+    position: relative;
+    box-sizing: border-box;
+
+    /* 컨테이너 내부에서 필드를 중앙 배치 및 최대 크기로 고정 */
+    display: flex;
+    justify-content: center;
+    align-items: center;
+}
+
+/* 필드 조절 */
+#field {
+width: min(100%, calc((100dvh - 110px) * (105 / 68)));
+    aspect-ratio: 105 / 68;
     
-    #field-container { 
-position: relative; 
-width: 100%; 
-display: flex;
-justify-content: center;
-align-items: center;
-padding: 5px; /* 화면 끝에 너무 붙지 않게 살짝 여유 */
-touch-action: none; 
-transform-origin: 0 0; /* ⭐ 왼쪽 상단(0,0)을 기준으로 확대/이동 */
-    transition: transform 0.3s ease; /* 부드러운 화면 전환 */
-    will-change: transform; /* 성능 최적화 */
-z-index: 1;
- }
+    background-color: #27ae60; 
+    background-size: 100% 100%; 
+    border: 4px solid #fff; 
+    position: relative; 
+    z-index: 1; 
+    overflow: hidden; 
+    box-sizing: border-box;
+touch-action: manipulation;
+}
+
+#field-content {
+    width: 100%;
+    height: 100%;
+    position: absolute;
+    top: 0;
+    left: 0;
+    transition: transform 0.3s ease-out; 
+transform-origin: center center !important;
+    position: relative;
+}    
+
+.player, .ball {
+    position: absolute !important; /* #field-content 내부 기준 절대 좌표 */
+    z-index: 10; /* 필드 배경 및 캔버스(z-index: 1~2)보다 위에 배치 */
+    transform: translate(-50%, -50%); /* 센터 정렬 기준 유지 */
+}
 
 .field-wrapper {
     overflow: hidden; 
@@ -380,6 +416,14 @@ input[type="range"] {
   }
       }
 
+.top-toolbar, 
+#simControlBar, 
+.setting-btn-container, /* 설정 버튼을 감싸고 있는 요소 클래스/ID명 */
+#settingModal {         /* 설정 창 모달 */
+    position: relative; 
+    z-index: 9999 !important; /* 필드(z-index: 1)보다 훨씬 위에 떠있도록 설정 */
+}
+
 /* 상단 툴바: 공간 부족 시 줄바꿈 허용 */
 .top-toolbar {
 display: flex;
@@ -585,16 +629,6 @@ display: flex;
 
 #penWidth { width: 80px; cursor: pointer; }
 
-#drawingCanvas {
-    position: absolute; /* 필드 위에 붕 띄움 */
-    top: 0;
-    left: 0;
-    width: 100%;
-    height: 100%;
-    z-index: 100 !important;       /* 선수들보다 높은 층 */
-    pointer-events: none; 
-
-}
 
 .pen-active #drawingCanvas {
     pointer-events: auto;
@@ -626,13 +660,13 @@ display: flex;
         justify-content: center; /* 핵심: 항상 가운데 정렬 */
         align-items: center; 
         gap: 8px;              /* 버튼 사이 간격 */
-        width: 95%; 
-        max-width: 800px;      /* 너무 퍼지지 않게 제한 */
+        width: 100%; 
+        max-width: 100%;      /* 너무 퍼지지 않게 제한 */
     ">
 
 <!-- 1. 설정 메뉴 버튼 구역 -->
 <div style="display: flex; align-items: center; flex-shrink: 0;">
-    <button id="toggleMenuBtn" onclick="toggleMenu()" class="menu-btn" style="width: 40px; height: 40px; border: none; background: transparent; padding: 0; cursor: pointer; flex-shrink: 0;">
+    <button id="toggleMenuBtn" onclick="toggleMenu()" class="menu-btn" style="width: 45px; height: 45px; border: none; background: transparent; padding: 0; cursor: pointer; flex-shrink: 0;">
         <img id="toggleMenuImg" src="setting.png" alt="설정" style="width: 100%; height: 100%; object-fit: contain;">
     </button>
 </div>
@@ -674,7 +708,7 @@ display: flex;
 </div>
 
 <!-- 5. 재생/녹화 컨트롤바 구역 (마지막 구역) -->
-<div id="simControlBar" class="sim-bar-horizontal hidden" style="display:none; align-items:center; gap:10px; height: 36px; padding: 0 10px; border-left: 2px solid #ddd; flex-shrink: 0;">
+<div id="simControlBar" class="sim-bar-horizontal hidden" style="display:none; align-items:center; gap:18px; height: 36px; padding: 0 10px; border-left: 2px solid #ddd; flex-shrink: 0;">
     <button onclick="playSimulation()" class="sim-btn" style="width: 34px; height: 34px; padding: 0; border: none; background: transparent; display: flex; align-items: center; justify-content: center; cursor: pointer;">
         <img id="playBtnImg" src="play.png" alt="재생" style="width: 100%; height: 100%; object-fit: contain;">
     </button>
@@ -689,15 +723,22 @@ display: flex;
     </button>
 </div>
 
-  <div id="field-container">
-
-    <div id="field">
-      <div id="field-bg"></div>
-      <div id="field-lines"></div>
-      <div class="ball draggable" id="ball" style="left:50%; top:50%;"></div>
-      <canvas id="drawingCanvas"></canvas>
-
-    </div></div>
+<div id="field">
+    <!-- 모든 확대/이동의 대상이 되는 레이어 -->
+    <div id="field-content">
+        <div id="field-bg"></div>
+        <div id="field-lines"></div>
+        <canvas id="drawingCanvas"></canvas>
+        
+        <!-- ★ 공과 모든 선수들이 반드시 이 안쪽에 위치해야 합니다 ★ -->
+        <div class="ball draggable" id="ball" style="left:50%; top:50%;"></div>
+        
+        <!-- 예시: 선수 태그들 -->
+        <div class="player home-player" ...></div>
+        <div class="player away-player" ...></div>
+        <!-- (자바스크립트로 동적 생성되는 선수들도 field-content 내부로 append 되어야 합니다) -->
+    </div>
+</div>
 
     <div id="menuOverlay">
       <div id="bottomControls" class="collapsed">
@@ -944,7 +985,30 @@ window.addEventListener('DOMContentLoaded', () => {
     field = document.getElementById('field');
     ball = document.getElementById('ball');
     bottomControls = document.getElementById('bottomControls');
-    if (ball) makeDraggable(ball);
+
+    if (ball) {
+        makeDraggable(ball);
+    }
+
+    if (field) {
+        // [PC 전용] 필드 내 더블 클릭 확대 및 기본 동작 완전 차단
+        field.addEventListener('dblclick', (e) => {
+            const isTargetObject = e.target.closest('.ball, #ball, .player, button, input, select, .sim-btn, .setting-modal');
+            if (!isTargetObject) {
+                e.preventDefault();
+                e.stopPropagation();
+            }
+        }, true);
+
+        // 기존 click 차단 코드
+        field.addEventListener('click', (e) => {
+            const isTargetObject = e.target.closest('.ball, #ball, .player, button, input, select, .sim-btn, .setting-modal');
+            if (!isTargetObject) {
+                e.preventDefault();
+                e.stopPropagation();
+            }
+        }, true);
+    }
 });
 
 // [2] 드래그 앤 드롭 엔진
@@ -952,15 +1016,28 @@ function makeDraggable(el) {
   const onStart = (e) => {
     if (e.target.closest('#bottomControls') || e.target.closest('#toggleMenuBtn')) return;
 
+    // 필드 Pan 드래그 이벤트로 전파 방지
+    if (e.cancelable) e.stopPropagation();
+
     const touches = e.changedTouches || [e];
     for (const t of touches) {
       const id = t.identifier !== undefined ? t.identifier : 'mouse';
-      const rect = el.getBoundingClientRect();
+      
+      // 스케일 및 이동 변수 안전하게 가져오기
+      const scale = (typeof zoomScale !== 'undefined' && zoomScale > 0) ? zoomScale : 1.0;
+      const elRect = el.getBoundingClientRect();
+
+      // 마우스/터치 포인트와 요소 중심점 사이의 거리 (화면 픽셀 거리)
+      const elCenterX = elRect.left + elRect.width / 2;
+      const elCenterY = elRect.top + elRect.height / 2;
+
       activeDrags.set(id, { 
         target: el, 
-        offsetX: t.clientX - (rect.left + rect.width / 2), 
-        offsetY: t.clientY - (rect.top + rect.height / 2) 
+        // 줌 비율을 나누어 순수 원본 픽셀 단위 offset 계산
+        offsetX: (t.clientX - elCenterX) / scale, 
+        offsetY: (t.clientY - elCenterY) / scale 
       });
+      
       el.style.transition = "none";
       el.style.zIndex = 1000;
     }
@@ -972,16 +1049,32 @@ function makeDraggable(el) {
       const id = t.identifier !== undefined ? t.identifier : 'mouse';
       const d = activeDrags.get(id);
       if (d && d.target === el) {
-        const targetField = field || document.getElementById('field');
-        const fr = targetField.getBoundingClientRect();
-        let x = ((t.clientX - fr.left - d.offsetX) / fr.width) * 100;
-        let y = ((t.clientY - fr.top - d.offsetY) / fr.height) * 100;
+        // field-content 요소 기준 (없으면 field)
+        const content = document.getElementById('field-content') || document.getElementById('field');
+        const cr = content.getBoundingClientRect();
+        const scale = (typeof zoomScale !== 'undefined' && zoomScale > 0) ? zoomScale : 1.0;
+
+        // field-content 상에서의 마우스 포인터 relative 좌표 (scale 보정)
+        const relativeX = (t.clientX - cr.left) / scale - d.offsetX;
+        const relativeY = (t.clientY - cr.top) / scale - d.offsetY;
+
+        // field-content의 원본 크기 (unscaled size)
+        const unscaledWidth = cr.width / scale;
+        const unscaledHeight = cr.height / scale;
+
+        // 백분율(%) 좌표 계산
+        let x = (relativeX / unscaledWidth) * 100;
+        let y = (relativeY / unscaledHeight) * 100;
         
         el.style.left = Math.max(0, Math.min(100, x)) + "%";
         el.style.top = Math.max(0, Math.min(100, y)) + "%";
 
-        if (isRecording) recordFrame();
-        if (el.id !== 'ball') preventOverlap(el); 
+        if (typeof isRecording !== 'undefined' && isRecording && typeof recordFrame === 'function') {
+            recordFrame();
+        }
+        if (el.id !== 'ball' && typeof preventOverlap === 'function') {
+            preventOverlap(el); 
+        }
       }
     }
     if (activeDrags.size > 0 && e.cancelable) e.preventDefault();
@@ -989,9 +1082,13 @@ function makeDraggable(el) {
 
   const onEnd = (e) => {
     const touches = e.changedTouches || [e];
-    for (const t of touches) { activeDrags.delete(t.identifier !== undefined ? t.identifier : 'mouse'); }
+    for (const t of touches) { 
+      activeDrags.delete(t.identifier !== undefined ? t.identifier : 'mouse'); 
+    }
     el.style.zIndex = el.classList.contains('ball') ? 2000 : 5;
-    setTimeout(() => { el.style.transition = "left 0.4s ease-out, top 0.4s ease-out"; }, 10);
+    setTimeout(() => { 
+      el.style.transition = "left 0.4s ease-out, top 0.4s ease-out"; 
+    }, 10);
   };
 
   el.addEventListener('mousedown', onStart);
@@ -1001,6 +1098,7 @@ function makeDraggable(el) {
   window.addEventListener('touchmove', onMove, { passive: false });
   window.addEventListener('touchend', onEnd);
 }
+
 
 function changeTeamNameColor(team, color) {
   document.querySelectorAll(`.player[data-team="${team}"]`).forEach(p => p.style.color = color);
@@ -1465,6 +1563,10 @@ function alignPlayers(team, isReverse = false) {
 
   autoSaveToLocal();
 }
+function toggleOverlap() {
+    // boolean 값으로 명확히 지정
+    isOverlapPrevented = !isOverlapPrevented; 
+}
 
 function toggleOverlapPrevention(show) { isOverlapPreventionActive = show; }
 
@@ -1501,6 +1603,84 @@ function preventOverlap(activeEl) {
       setTimeout(() => { target.style.transition = "left 0.15s ease-out, top 0.15s ease-out"; }, 100);
     }
   });
+}
+
+function preventOverlap(draggedEl) {
+    // 겹침 방지 스위치 체크
+    if (typeof isOverlapPreventionActive === 'undefined' || !isOverlapPreventionActive) return;
+
+    // ★ [밀림 세기 조절 변수] (원하는 수치로 자유롭게 수정하세요)
+    const PLAYER_PUSH_FACTOR = 0.1; // 선수끼리 부딪혔을 때 밀리는 세기 (0.1 ~ 0.5 권장)
+    const BALL_PUSH_FACTOR   = 0.15; // 공과 부딪혔을 때 밀리는 세기
+
+    const scale = (typeof zoomScale !== 'undefined' && zoomScale > 0) ? zoomScale : 1.0;
+    const content = document.getElementById('field-content') || document.getElementById('field');
+    const contentRect = content.getBoundingClientRect();
+    
+    const unscaledWidth = contentRect.width / scale;
+    const unscaledHeight = contentRect.height / scale;
+
+    // 밀어낼 대상 목록 수집 (공 + 드래그 중인 본인을 제외한 모든 선수)
+    const targets = [];
+    const ballEl = document.getElementById('ball');
+    if (ballEl && draggedEl !== ballEl) {
+        targets.push(ballEl);
+    }
+
+    const allPlayers = document.querySelectorAll('.player');
+    allPlayers.forEach(p => {
+        if (p !== draggedEl) {
+            targets.push(p);
+        }
+    });
+
+    const r1 = draggedEl.getBoundingClientRect();
+    const c1x = r1.left + r1.width / 2;
+    const c1y = r1.top + r1.height / 2;
+
+    targets.forEach(targetEl => {
+        const isBall = (targetEl === ballEl);
+        
+        const r2 = targetEl.getBoundingClientRect();
+        const c2x = r2.left + r2.width / 2;
+        const c2y = r2.top + r2.height / 2;
+
+        const dx = c2x - c1x;
+        const dy = c2y - c1y;
+        const distance = Math.hypot(dx, dy);
+
+        // 충돌 기준 거리 (두 요소 반경의 합)
+        const minDistanceScaled = (r1.width + r2.width) / 2;
+
+        if (distance < minDistanceScaled && distance > 0) {
+            // ★ 대상이 공인지 선수인지에 따라 밀림 세기 차등 적용
+            const pushFactor = isBall ? BALL_PUSH_FACTOR : PLAYER_PUSH_FACTOR;
+            const overlap = (minDistanceScaled - distance) * pushFactor; 
+            
+            const nx = dx / distance;
+            const ny = dy / distance;
+
+            const pushPixelX = (nx * overlap) / scale;
+            const pushPixelY = (ny * overlap) / scale;
+
+            const pushPercentX = (pushPixelX / unscaledWidth) * 100;
+            const pushPercentY = (pushPixelY / unscaledHeight) * 100;
+
+            let currentLeft = parseFloat(targetEl.style.left) || 50;
+            let currentTop = parseFloat(targetEl.style.top) || 50;
+
+            let newLeft = currentLeft + pushPercentX;
+            let newTop = currentTop + pushPercentY;
+
+            // 필드 이탈 방지 (0% ~ 100%)
+            targetEl.style.left = Math.max(0, Math.min(100, newLeft)) + "%";
+            targetEl.style.top = Math.max(0, Math.min(100, newTop)) + "%";
+
+            if (typeof isRecording !== 'undefined' && isRecording && typeof recordFrame === 'function') {
+                recordFrame();
+            }
+        }
+    });
 }
 
 function changeShape(team, shape) {
@@ -1557,8 +1737,11 @@ function togglePenMode() {
         if (canvas && container) {
             canvas.style.zIndex = "100"; 
             canvas.style.pointerEvents = "auto";
-            canvas.width = container.offsetWidth;
-            canvas.height = container.offsetHeight;
+// 캔버스 크기가 다를 때만 초기화하여 기존 그림 유지
+            if (canvas.width !== container.offsetWidth || canvas.height !== container.offsetHeight) {
+                canvas.width = container.offsetWidth;
+                canvas.height = container.offsetHeight;
+            }
         }
         players.forEach(p => p.style.pointerEvents = "none");
         if (targetBall) targetBall.style.pointerEvents = "none";
@@ -1586,9 +1769,12 @@ window.addEventListener('mousemove', draw);
 window.addEventListener('mouseup', stopDrawing);
 window.addEventListener('touchstart', startDrawing, { passive: false });
 window.addEventListener('touchmove', (e) => {
-    draw(e);
-    if (e.cancelable && penActive && isDrawing) e.preventDefault();
+    if (penActive && isDrawing) {
+        draw(e);
+        if (e.cancelable) e.preventDefault();
+    }
 }, { passive: false });
+
 window.addEventListener('touchend', stopDrawing);
 
 function startDrawing(e) {
@@ -1800,6 +1986,164 @@ function stopSimulation() {
         el.style.transition = "left 0.4s ease-out, top 0.4s ease-out";
     });
 }
+
+// [8] 반응형 캔버스 해상도 자동 동기화
+function updateCanvasSize() {
+    const targetField = field || document.getElementById('field');
+    const canvas = document.getElementById('drawingCanvas');
+    
+    if (targetField && canvas) {
+        const rect = targetField.getBoundingClientRect();
+        if (canvas.width !== rect.width || canvas.height !== rect.height) {
+            canvas.width = rect.width;
+            canvas.height = rect.height;
+        }
+    }
+}
+
+// 화면 크기 변경 시 및 로드 시 실행
+window.addEventListener('resize', updateCanvasSize);
+window.addEventListener('DOMContentLoaded', updateCanvasSize);
+
+let currentZoomState = 'center'; // 'left', 'center', 'right', 'reset'
+let zoomScale = 1.0; // 초기 화면 스케일 (기본 1.0배)
+let panX = 0, panY = 0;
+let isPanning = false;
+let startX = 0, startY = 0;
+
+// 줌 변환 실행 함수
+function applyTransform() {
+    const content = document.getElementById('field-content');
+    if (content) {
+        content.style.transform = `scale(${zoomScale}) translate(${panX}%, ${panY}%)`;
+    }
+}
+
+// 줌 버튼 클릭 시 실행되는 함수
+function zoomField(position) {
+    const content = document.getElementById('field-content');
+    if (!content) return;
+
+    if (typeof currentZoomState !== 'undefined') {
+        currentZoomState = position;
+    }
+
+    switch (position) {
+        case 'left':
+            zoomScale = 1.5; panX = 16.5; panY = 0;
+            break;
+        case 'right':
+            zoomScale = 1.5; panX = -16.5; panY = 0;
+            break;
+        case 'center':
+            zoomScale = 1.5; panX = 0; panY = 0;
+            break;
+        case 'reset':
+        default:
+            zoomScale = 1; panX = 0; panY = 0;
+            applyTransform();
+            return;
+    }
+
+    applyTransform();
+}
+
+function resetZoom() {
+    zoomField('reset');
+}
+
+const fieldElem = document.getElementById('field');
+
+if (fieldElem) {
+    // 터치 / 마우스 드래그 시작
+    const startPan = (e) => {
+        // ★ 핵심 1: 전체 화면(1배 이하) 상태에서는 필드를 누르거나 드래그해도 반응하지 않도록 차단
+        if (typeof zoomScale === 'undefined' || zoomScale <= 1) return;
+        
+        // 버튼, 선수, 공, 설정창, 캔버스 드로잉 관련 클릭 시 드래그 동작 안 함
+        const isInteractive = e.target.closest('#ball, .ball, .player, .sim-btn, button, input, select, .setting-modal, #settingModal, [onclick]');
+        if (isInteractive) return;
+
+        isPanning = true;
+        
+        const content = document.getElementById('field-content');
+        if (content) content.classList.add('is-dragging');
+
+        const pageX = e.touches ? e.touches[0].pageX : e.pageX;
+        const pageY = e.touches ? e.touches[0].pageY : e.pageY;
+        
+        startX = pageX;
+        startY = pageY;
+    };
+
+    // 마우스 / 손가락 이동 (필드 화면 밀기)
+    const movePan = (e) => {
+        // ★ 핵심 2: 줌(1.5배)이 실제로 되어있지 않거나 드래그 중이 아니면 화면 이동 방지
+        if (!isPanning || zoomScale <= 1) return;
+        
+        const pageX = e.touches ? e.touches[0].pageX : e.pageX;
+        const pageY = e.touches ? e.touches[0].pageY : e.pageY;
+
+        const deltaX = (pageX - startX) * 0.08; 
+        const deltaY = (pageY - startY) * 0.08;
+
+        panX += deltaX;
+        panY += deltaY;
+
+        // 위아래/좌우 이동 범위 제한
+        panX = Math.max(-35, Math.min(35, panX));
+        panY = Math.max(-30, Math.min(30, panY));
+
+        startX = pageX;
+        startY = pageY;
+
+        applyTransform();
+    };
+
+    // 드래그 종료
+    const endPan = () => { 
+        isPanning = false; 
+        const content = document.getElementById('field-content');
+        if (content) content.classList.remove('is-dragging');
+    };
+
+    // PC 마우스 이벤트
+    fieldElem.addEventListener('mousedown', startPan);
+    window.addEventListener('mousemove', movePan);
+    window.addEventListener('mouseup', endPan);
+
+    // 모바일 터치 이벤트
+    fieldElem.addEventListener('touchstart', startPan, { passive: true });
+    window.addEventListener('touchmove', movePan, { passive: true });
+    window.addEventListener('touchend', endPan);
+    window.addEventListener('touchcancel', endPan);
+}
+
+function fixPlayerLayers() {
+    const field = document.getElementById('field');
+    const fieldContent = document.getElementById('field-content');
+    
+    if (!field || !fieldContent) return;
+
+    // #field 바로 아래에 잘못 위치한 모든 선수(.player)들을 #field-content 안으로 자동 이동
+    const misplacedPlayers = field.querySelectorAll(':scope > .player');
+    misplacedPlayers.forEach(player => {
+        fieldContent.appendChild(player);
+    });
+}
+
+// 1. 페이지 로드 완료 시 자동 실행
+document.addEventListener('DOMContentLoaded', fixPlayerLayers);
+
+// 2. 줌(zoomField)이 실행될 때도 혹시 몰라 한 번 더 실행하여 보정
+const originalZoomField = window.zoomField;
+window.zoomField = function(position) {
+    fixPlayerLayers(); // 선수 레이어 위치 강제 보정
+    if (typeof originalZoomField === 'function') {
+        originalZoomField(position);
+    }
+};
+
 </script>
 </body>
 </html>
