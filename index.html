@@ -1035,112 +1035,80 @@ window.addEventListener('DOMContentLoaded', () => {
 
 // [2] 드래그 앤 드롭 엔진 (스마트폰 터치 불통 및 확대 보정 완료)
 function makeDraggable(el) {
-  const onStart = (e) => {
-    if (e.target.closest('#bottomControls') || e.target.closest('#toggleMenuBtn')) return;
+    let isDragging = false;
+    let offsetX = 0;
+    let offsetY = 0;
 
-    // 터치 이벤트 발생 시 스마트폰 기본 스크롤/제스처 차단
-    if (e.cancelable) e.preventDefault();
+    const startDrag = (e) => {
+        // 버튼, 입력창, 리스트 핸들 등 클릭 시 드래그 방지
+        if (e.target.closest('button, input, select, .drag-handle')) return;
 
-    const isTouch = e.type === 'touchstart';
-    const touches = isTouch ? e.changedTouches : [e];
+        isDragging = true;
 
-    for (let i = 0; i < touches.length; i++) {
-      const t = touches[i];
-      const id = isTouch ? t.identifier : 'mouse';
+        const touch = e.touches ? e.touches[0] : e;
+        const elRect = el.getBoundingClientRect();
 
-      // 터치한 요소가 현재 el 요소 또는 el 내부의 자식 요소인지 검사
-      const targetNode = e.target;
-      if (isTouch && targetNode !== el && !el.contains(targetNode)) continue;
+        // 손가락/마우스가 요소 내에서 클릭된 상대 위치 보정 (중심점 오차 해결)
+        offsetX = touch.clientX - (elRect.left + elRect.width / 2);
+        offsetY = touch.clientY - (elRect.top + elRect.height / 2);
 
-      activeDrags.set(id, { 
-        target: el, 
-        startX: t.clientX,
-        startY: t.clientY,
-        initialLeftPercent: parseFloat(el.style.left) || 50,
-        initialTopPercent: parseFloat(el.style.top) || 50
-      });
-      
-      el.style.transition = "none";
-      const isBall = (el.id === 'ball' || el.classList.contains('ball'));
-      el.style.zIndex = isBall ? 2000 : 1000;
-      break;
-    }
-  };
+        if (e.cancelable && e.type === 'touchstart') e.preventDefault();
+    };
 
-  const onMove = (e) => {
-    const isTouch = e.type === 'touchmove';
-    const touches = isTouch ? e.changedTouches : [e];
+    const moveDrag = (e) => {
+        if (!isDragging) return;
 
-    for (let i = 0; i < touches.length; i++) {
-      const t = touches[i];
-      const id = isTouch ? t.identifier : 'mouse';
-      const d = activeDrags.get(id);
+        const touch = e.touches ? e.touches[0] : e;
+        const fieldContent = document.getElementById('field-content') || document.getElementById('field');
+        if (!fieldContent) return;
 
-      if (d && d.target === el) {
-        const content = document.getElementById('field-content') || document.getElementById('field');
-        const cr = content.getBoundingClientRect();
-        const scale = (typeof zoomScale !== 'undefined' && zoomScale > 0) ? zoomScale : 1.0;
+        // 줌/변형이 반영된 실제 필드의 화면상 크기 좌표
+        const rect = fieldContent.getBoundingClientRect();
 
-        const unscaledWidth = cr.width / scale;
-        const unscaledHeight = cr.height / scale;
+        // 터치 위치 - 필드 좌표 - 클릭 오프셋 보정
+        const touchX = touch.clientX - rect.left - offsetX;
+        const touchY = touch.clientY - rect.top - offsetY;
 
-const TOUCH_SENSITIVITY = isTouch ? 0.25 : 1.0;
+        // 필드 너비/높이 대비 정확한 % 위치 산출
+        let newLeftPercent = (touchX / rect.width) * 100;
+        let newTopPercent = (touchY / rect.height) * 100;
 
-// 이동 거리 계산 (줌 스케일 및 모바일 감도 보정)
-const deltaX = ((t.clientX - d.startX) / scale) * TOUCH_SENSITIVITY;
-const deltaY = ((t.clientY - d.startY) / scale) * TOUCH_SENSITIVITY;
+        // 필드 이탈 방지 (0% ~ 100%)
+        newLeftPercent = Math.max(0, Math.min(100, newLeftPercent));
+        newTopPercent = Math.max(0, Math.min(100, newTopPercent));
 
-        const deltaPercentX = (deltaX / unscaledWidth) * 100;
-        const deltaPercentY = (deltaY / unscaledHeight) * 100;
+        // 위치 적용
+        el.style.left = newLeftPercent + "%";
+        el.style.top = newTopPercent + "%";
 
-        let x = d.initialLeftPercent + deltaPercentX;
-        let y = d.initialTopPercent + deltaPercentY;
-        
-        x = Math.max(0, Math.min(100, x));
-        y = Math.max(0, Math.min(100, y));
+        // 충돌 방지 로직 (존재할 때만 실행)
+        if (typeof preventOverlap === 'function') {
+            preventOverlap(el);
+        }
 
-        el.style.left = x + "%";
-        el.style.top = y + "%";
-
+        // 녹화 기능 연동
         if (typeof isRecording !== 'undefined' && isRecording && typeof recordFrame === 'function') {
             recordFrame();
         }
-        if (typeof preventOverlap === 'function') {
-            preventOverlap(el); 
-        }
-      }
-    }
-    if (activeDrags.size > 0 && e.cancelable) e.preventDefault();
-  };
 
-  const onEnd = (e) => {
-    const isTouch = e.type === 'touchend' || e.type === 'touchcancel';
-    const touches = isTouch ? (e.changedTouches || []) : [e];
+        if (e.cancelable) e.preventDefault();
+    };
 
-    for (let i = 0; i < touches.length; i++) { 
-      const t = touches[i];
-      const id = isTouch ? t.identifier : 'mouse';
-      activeDrags.delete(id); 
-    }
-    
-    if (activeDrags.size === 0) {
-      const isBall = (el.id === 'ball' || el.classList.contains('ball'));
-      el.style.zIndex = isBall ? 2000 : 5;
-      setTimeout(() => { 
-        el.style.transition = "left 0.4s ease-out, top 0.4s ease-out"; 
-      }, 10);
-    }
-  };
+    const endDrag = () => {
+        if (!isDragging) return;
+        isDragging = false;
+        if (typeof autoSaveToLocal === 'function') autoSaveToLocal();
+    };
 
-  // 마우스 및 터치 이벤트 직접 연결
-  el.addEventListener('mousedown', onStart);
-  window.addEventListener('mousemove', onMove);
-  window.addEventListener('mouseup', onEnd);
-  
-  el.addEventListener('touchstart', onStart, { passive: false });
-  window.addEventListener('touchmove', onMove, { passive: false });
-  window.addEventListener('touchend', onEnd);
-  window.addEventListener('touchcancel', onEnd);
+    // 엘리먼트에 직접 드래그 이벤트 바인딩
+    el.addEventListener('mousedown', startDrag);
+    window.addEventListener('mousemove', moveDrag);
+    window.addEventListener('mouseup', endDrag);
+
+    el.addEventListener('touchstart', startDrag, { passive: false });
+    window.addEventListener('touchmove', moveDrag, { passive: false });
+    window.addEventListener('touchend', endDrag);
+    window.addEventListener('touchcancel', endDrag);
 }
 
 function changeTeamNameColor(team, color) {
