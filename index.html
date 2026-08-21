@@ -122,10 +122,16 @@ transform-origin: center center !important;
     position: relative;
 }    
 
-.player, .ball {
+.player, .ball, #ball {
     position: absolute !important; /* #field-content 내부 기준 절대 좌표 */
-    z-index: 10; /* 필드 배경 및 캔버스(z-index: 1~2)보다 위에 배치 */
+    z-index: 10; /* 필드 배경 및 캔버스보다 위에 배치 */
     transform: translate(-50%, -50%); /* 센터 정렬 기준 유지 */
+
+    /* ★ 안드로이드 스마트폰 터치 필수 속성 ★ */
+    touch-action: none !important;      /* 브라우저 기본 스크롤/줌 제스처 완전 차단 */
+    pointer-events: auto !important;   /* 터치/클릭 이벤트 수신 허용 */
+    -webkit-user-select: none;          /* 꾹 눌렀을 때 텍스트 선택 방지 */
+    user-select: none;
 }
 
 .field-wrapper {
@@ -477,12 +483,24 @@ input:checked + .slider:before { transform: translateX(16px); }
 .side-box.left { justify-content: flex-end; padding-right: 8px; }
 .side-box.right { justify-content: flex-start; padding-left: 8px; }
 
-/* 기본 선수 공통 */
+/* 기본 선수 공통 (기존 코드 + 안드로이드 터치 속성 추가) */
 .player {
     position: absolute;
     transition: all 0.3s ease; /* 모양 바뀔 때 부드럽게 */
     overflow: hidden;
     z-index: 10 !important;
+
+    /* ★ 안드로이드 스마트폰 터치 필수 속성 추가 ★ */
+    touch-action: none !important;      /* 브라우저 기본 스크롤/줌 동작 차단 */
+    pointer-events: auto !important;   /* 터치 이벤트 수신 허용 */
+    -webkit-user-select: none;          /* 꾹 눌렀을 때 텍스트 선택 방지 */
+    user-select: none;
+}
+
+/* ★ 바로 아래에 새로 추가할 코드 (선수 내부 텍스트/등번호 터치 씹힘 방지) ★ */
+.player * {
+    touch-action: none !important;
+    pointer-events: none; /* 내부 요소가 아닌 부모 .player가 터치를 받도록 처리 */
 }
 
 /* 원형 */
