@@ -132,10 +132,7 @@ transform-origin: center center !important;
     user-select: none;
 }
 
-.top-menu, .setting-btn, #settingModal, #simControlBar, .control-btn {
-    z-index: 200 !important;
-    pointer-events: auto !important;
-}
+
 
 .field-wrapper {
     overflow: hidden; 
@@ -1770,9 +1767,9 @@ function toggleSimulationBar(checked) {
 function togglePenMode() {
     const penImg = document.getElementById('penBtnImg');
     const container = document.getElementById('field-container') || document.getElementById('field');
+    const canvas = document.getElementById('drawingCanvas');
     const players = document.querySelectorAll('.player');
     const targetBall = typeof ball !== 'undefined' ? ball : document.getElementById('ball');
-    const canvas = document.getElementById('drawingCanvas');
 
     penActive = !penActive;
 
@@ -1780,21 +1777,39 @@ function togglePenMode() {
         if (penImg) penImg.src = 'pen1.png';
         if (canvas && container) {
             canvas.style.zIndex = "100"; // 펜 모드일 때만 맨 위로
-            canvas.style.pointerEvents = "auto";
-            
+            canvas.style.pointerEvents = "auto"; // 캔버스 클릭 가능
+
             // 캔버스 크기가 다를 때만 초기화하여 기존 그림 유지
             if (canvas.width !== container.offsetWidth || canvas.height !== container.offsetHeight) {
                 canvas.width = container.offsetWidth;
                 canvas.height = container.offsetHeight;
             }
+
+            // ★ 펜 모드일 때만 캔버스에 그리기 이벤트 직접 등록
+            // 이렇게 하면 펜 모드가 켜진 동안에는 이 이벤트만 실행되고 필드 이동은 발생하지 않습니다.
+            canvas.addEventListener('mousedown', startDrawing);
+            canvas.addEventListener('mousemove', draw);
+            canvas.addEventListener('mouseup', stopDrawing);
+            canvas.addEventListener('touchstart', startDrawing, { passive: false });
+            canvas.addEventListener('touchmove', draw, { passive: false });
+            canvas.addEventListener('touchend', stopDrawing);
         }
         players.forEach(p => p.style.pointerEvents = "none");
         if (targetBall) targetBall.style.pointerEvents = "none";
     } else {
         if (penImg) penImg.src = 'pen.png';
         if (canvas) {
-            canvas.style.zIndex = "1"; // ★ 핵심: 펜을 끌 때 캔버스를 맨 뒤로 내림
+            canvas.style.zIndex = "1"; // 펜을 끌 때 캔버스를 맨 뒤로 내림
             canvas.style.pointerEvents = "none"; // 클릭 통과
+
+            // ★ 펜 모드 끄면 캔버스 그리기 이벤트 제거
+            // 필드 판에 대한 터치/마우스 이벤트를 차단하지 않으므로 필드 이동이 가능해집니다.
+            canvas.removeEventListener('mousedown', startDrawing);
+            canvas.removeEventListener('mousemove', draw);
+            canvas.removeEventListener('mouseup', stopDrawing);
+            canvas.removeEventListener('touchstart', startDrawing);
+            canvas.removeEventListener('touchmove', draw);
+            canvas.removeEventListener('touchend', stopDrawing);
         }
         players.forEach(p => p.style.pointerEvents = "auto");
         if (targetBall) targetBall.style.pointerEvents = "auto";
@@ -1829,6 +1844,12 @@ function startDrawing(e) {
     if (!penActive) return;
     if (e.target.closest('#penToolbar') || e.target.closest('#bottomControls')) return;
 
+    // ★ 핵심: 펜 툴바 터치가 아닐 때만 터치 신호가 필드로 전파되어 화면이 움직이는 것을 차단
+    if (e) {
+        if (e.preventDefault) e.preventDefault();
+        if (e.stopPropagation) e.stopPropagation();
+    }
+
     const canvas = document.getElementById('drawingCanvas');
     if(!canvas) return;
     const ctx = canvas.getContext('2d');
@@ -1847,6 +1868,13 @@ function startDrawing(e) {
 
 function draw(e) {
     if (!isDrawing || !penActive) return;
+
+    // ★ 핵심: 터치 이벤트가 필드로 전파되어 화면이 움직이는 것을 차단
+    if (e) {
+        if (e.preventDefault) e.preventDefault();
+        if (e.stopPropagation) e.stopPropagation();
+    }
+
     const canvas = document.getElementById('drawingCanvas');
     if(!canvas) return;
     const ctx = canvas.getContext('2d');
