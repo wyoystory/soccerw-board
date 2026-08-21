@@ -773,7 +773,7 @@ style="padding: 2px 5px; border-radius: 12px; border: 1px solid #ddd; font-size:
 
 
   <label style="flex: 1; min-width: 0; min-height: 22px; cursor: pointer; display: flex; align-items: center; background: #ececec; border: 1px solid #ccc; padding: 2 8px; border-radius: 10px; margin: 0; box-sizing: border-box;">
-  <span style="font-size: 10px; width: 40px; flex-shrink: 0; line-height: 1">유니폼</span>
+  <span style="font-size: 8px; width: 40px; flex-shrink: 0; line-height: 1">유니폼</span>
     <div id="redFileName" style="font-size: 9px; color: #888; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;">지정 안됨</div>
     <input type="file" accept="image/*" style="display:none;" onchange="handleImageUpload(event, 'red')">
   </label>
@@ -2143,6 +2143,17 @@ window.zoomField = function(position) {
         originalZoomField(position);
     }
 };
+
+// 모바일 브라우저 당겨서 새로고침(Pull-to-Refresh) 방지
+document.addEventListener('touchmove', function(e) {
+  // 1.5배 확대 상태이거나 필드를 이동 중일 때 새로고침 동작 차단
+  if (typeof zoomScale !== 'undefined' && zoomScale > 1.0) {
+    if (e.cancelable) {
+      e.preventDefault();
+    }
+  }
+}, { passive: false });
+
 
 </script>
 </body>
