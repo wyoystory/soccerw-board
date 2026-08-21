@@ -1084,14 +1084,11 @@ function makeDraggable(el) {
         const unscaledWidth = cr.width / scale;
         const unscaledHeight = cr.height / scale;
 
-const TOUCH_SENSITIVITY = isTouch ? 0.15 : 1.0;
+const TOUCH_SENSITIVITY = isTouch ? 0.25 : 1.0;
 
 // 이동 거리 계산 (줌 스케일 및 모바일 감도 보정)
 const deltaX = ((t.clientX - d.startX) / scale) * TOUCH_SENSITIVITY;
 const deltaY = ((t.clientY - d.startY) / scale) * TOUCH_SENSITIVITY;
-
-d.startX = t.clientX;
-d.startY = t.clientY;
 
         const deltaPercentX = (deltaX / unscaledWidth) * 100;
         const deltaPercentY = (deltaY / unscaledHeight) * 100;
@@ -1617,65 +1614,74 @@ function toggleOverlap() {
 function toggleOverlapPrevention(show) { isOverlapPreventionActive = show; }
 // 프레임 중복 계산 방지를 위한 변수
 let isOverlapPending = false;
+function preventOverlap(draggedEl) {
+    if (typeof isOverlapPreventionActive === 'undefined' || !isOverlapPreventionActive) return;
+    if (isOverlapPending) return; // 모바일 프레임 과부하 방지
 
-function preventOverlap(activeEl) {
-  if (typeof isOverlapPreventionActive !== 'undefined' && !isOverlapPreventionActive) return;
-  if (isOverlapPending) return; // 모바일 렌더링 과부하 차단
+    isOverlapPending = true;
 
-  isOverlapPending = true;
+    requestAnimationFrame(() => {
+        isOverlapPending = false;
 
-  // 스마트폰 화면 주사율(60Hz~120Hz)에 맞춘 프레임 최적화
-  requestAnimationFrame(() => {
-    isOverlapPending = false;
+        const PLAYER_PUSH_FACTOR = 0.1;
+        const BALL_PUSH_FACTOR = 0.15;
 
-    const targetField = typeof field !== 'undefined' && field ? field : document.getElementById('field');
-    const targets = document.querySelectorAll('.player, .ball, #ball'); 
-    const activeRect = activeEl.getBoundingClientRect();
-    
-    const radius = activeRect.width / 2;
-    const activeCenterX = activeRect.left + radius;
-    const activeCenterY = activeRect.top + radius;
-    
-    // 자연스러운 물리 충돌 판단 거리
-    const minDistance = radius * 0.7;
-
-    targets.forEach(target => {
-      if (target === activeEl) return;
-      
-      const targetRect = target.getBoundingClientRect();
-      const targetCenterX = targetRect.left + (targetRect.width / 2);
-      const targetCenterY = targetRect.top + (targetRect.height / 2);
-      
-      const dx = activeCenterX - targetCenterX;
-      const dy = activeCenterY - targetCenterY;
-      const distance = Math.hypot(dx, dy);
-      
-      if (distance < minDistance && distance > 0) {
-        const angle = Math.atan2(dy, dx);
+        const scale = (typeof zoomScale !== 'undefined' && zoomScale > 0) ? zoomScale : 1.0;
+        const content = document.getElementById('field-content') || document.getElementById('field');
+        if (!content) return;
         
-        // ★ 컴퓨터와 동일한 부드러운 쿠션감을 주는 완충 계수 (0.05)
-        const overlap = minDistance - distance;
-        const push = overlap * 0.005;
+        const contentRect = content.getBoundingClientRect();
+        const unscaledWidth = contentRect.width / scale;
+        const unscaledHeight = contentRect.height / scale;
 
-        // 즉각적 반응을 위해 트랜지션 해제
-        target.style.transition = "none";
+        const targets = [];
+        const ballEl = document.getElementById('ball');
+        if (ballEl && draggedEl !== ballEl) targets.push(ballEl);
 
-        const pushX = Math.cos(angle) * push;
-        const pushY = Math.sin(angle) * push;
-        const fr = targetField.getBoundingClientRect();
+        document.querySelectorAll('.player').forEach(p => {
+            if (p !== draggedEl) targets.push(p);
+        });
 
-        const currentScale = (typeof zoomScale !== 'undefined' && zoomScale > 0) ? zoomScale : 1.0;
-        const unscaledWidth = fr.width / currentScale;
-        const unscaledHeight = fr.height / currentScale;
+        const r1 = draggedEl.getBoundingClientRect();
+        const c1x = r1.left + r1.width / 2;
+        const c1y = r1.top + r1.height / 2;
 
-        let newX = ((targetRect.left - pushX - fr.left + (targetRect.width / 2)) / currentScale / unscaledWidth) * 100;
-        let newY = ((targetRect.top - pushY - fr.top + (targetRect.height / 2)) / currentScale / unscaledHeight) * 100;
+        targets.forEach(targetEl => {
+            const isBall = (targetEl === ballEl);
+            const r2 = targetEl.getBoundingClientRect();
+            const c2x = r2.left + r2.width / 2;
+            const c2y = r2.top + r2.height / 2;
 
-        target.style.left = Math.max(0, Math.min(100, newX)) + "%";
-        target.style.top = Math.max(0, Math.min(100, newY)) + "%";
-      }
+            const dx = c2x - c1x;
+            const dy = c2y - c1y;
+            const distance = Math.hypot(dx, dy);
+            const minDistanceScaled = (r1.width + r2.width) / 2;
+
+            if (distance < minDistanceScaled && distance > 0) {
+                const pushFactor = isBall ? BALL_PUSH_FACTOR : PLAYER_PUSH_FACTOR;
+                const overlap = (minDistanceScaled - distance) * pushFactor; 
+                
+                const nx = dx / distance;
+                const ny = dy / distance;
+
+                const pushPixelX = (nx * overlap) / scale;
+                const pushPixelY = (ny * overlap) / scale;
+
+                const pushPercentX = (pushPixelX / unscaledWidth) * 100;
+                const pushPercentY = (pushPixelY / unscaledHeight) * 100;
+
+                let currentLeft = parseFloat(targetEl.style.left) || 50;
+                let currentTop = parseFloat(targetEl.style.top) || 50;
+
+                targetEl.style.left = Math.max(0, Math.min(100, currentLeft + pushPercentX)) + "%";
+                targetEl.style.top = Math.max(0, Math.min(100, currentTop + pushPercentY)) + "%";
+
+                if (typeof isRecording !== 'undefined' && isRecording && typeof recordFrame === 'function') {
+                    recordFrame();
+                }
+            }
+        });
     });
-  });
 }
 
 function preventOverlap(draggedEl) {
