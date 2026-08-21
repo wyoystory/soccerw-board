@@ -1084,11 +1084,14 @@ function makeDraggable(el) {
         const unscaledWidth = cr.width / scale;
         const unscaledHeight = cr.height / scale;
 
-const TOUCH_SENSITIVITY = isTouch ? 0.45 : 1.0;
+const TOUCH_SENSITIVITY = isTouch ? 0.15 : 1.0;
 
 // 이동 거리 계산 (줌 스케일 및 모바일 감도 보정)
 const deltaX = ((t.clientX - d.startX) / scale) * TOUCH_SENSITIVITY;
 const deltaY = ((t.clientY - d.startY) / scale) * TOUCH_SENSITIVITY;
+
+d.startX = t.clientX;
+d.startY = t.clientY;
 
         const deltaPercentX = (deltaX / unscaledWidth) * 100;
         const deltaPercentY = (deltaY / unscaledHeight) * 100;
