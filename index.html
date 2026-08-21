@@ -1084,11 +1084,9 @@ function makeDraggable(el) {
         const unscaledWidth = cr.width / scale;
         const unscaledHeight = cr.height / scale;
 
-const TOUCH_SENSITIVITY = isTouch ? 0.15 : 1.0;
-
-// 이동 거리 계산 (줌 스케일 및 모바일 감도 보정)
-const deltaX = ((t.clientX - d.startX) / scale) * TOUCH_SENSITIVITY;
-const deltaY = ((t.clientY - d.startY) / scale) * TOUCH_SENSITIVITY;
+        // 이동 거리 계산 (줌 스케일 보정)
+        const deltaX = (t.clientX - d.startX) / scale;
+        const deltaY = (t.clientY - d.startY) / scale;
 
         const deltaPercentX = (deltaX / unscaledWidth) * 100;
         const deltaPercentY = (deltaY / unscaledHeight) * 100;
@@ -1634,7 +1632,7 @@ function preventOverlap(activeEl) {
     const activeCenterY = activeRect.top + radius;
     
     // 자연스러운 물리 충돌 판단 거리
-    const minDistance = radius * 0.7;
+    const minDistance = radius * 0.6;
 
     targets.forEach(target => {
       if (target === activeEl) return;
@@ -1652,7 +1650,7 @@ function preventOverlap(activeEl) {
         
         // ★ 컴퓨터와 동일한 부드러운 쿠션감을 주는 완충 계수 (0.05)
         const overlap = minDistance - distance;
-        const push = overlap * 0.005;
+        const push = overlap * 0.05;
 
         // 즉각적 반응을 위해 트랜지션 해제
         target.style.transition = "none";
