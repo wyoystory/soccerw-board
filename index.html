@@ -1610,66 +1610,39 @@ function toggleOverlap() {
 }
 
 function toggleOverlapPrevention(show) { isOverlapPreventionActive = show; }
-// 프레임 중복 계산 방지를 위한 변수
-let isOverlapPending = false;
 
 function preventOverlap(activeEl) {
-  if (typeof isOverlapPreventionActive !== 'undefined' && !isOverlapPreventionActive) return;
-  if (isOverlapPending) return; // 모바일 렌더링 과부하 차단
+  if (!isOverlapPreventionActive) return;
+  const targetField = field || document.getElementById('field');
+  const targets = document.querySelectorAll('.player, .ball'); 
+  const activeRect = activeEl.getBoundingClientRect();
+  const radius = activeRect.width / 2;
 
-  isOverlapPending = true;
-
-  // 스마트폰 화면 주사율(60Hz~120Hz)에 맞춘 프레임 최적화
-  requestAnimationFrame(() => {
-    isOverlapPending = false;
-
-    const targetField = typeof field !== 'undefined' && field ? field : document.getElementById('field');
-    const targets = document.querySelectorAll('.player, .ball, #ball'); 
-    const activeRect = activeEl.getBoundingClientRect();
+  targets.forEach(target => {
+    if (target === activeEl) return;
+    const targetRect = target.getBoundingClientRect();
+    const dx = (activeRect.left + radius) - (targetRect.left + (targetRect.width / 2));
+    const dy = (activeRect.top + radius) - (targetRect.top + (targetRect.height / 2));
+    const distance = Math.sqrt(dx * dx + dy * dy);
+    const minDistance = activeRect.width * 0.95; 
     
-    const radius = activeRect.width / 2;
-    const activeCenterX = activeRect.left + radius;
-    const activeCenterY = activeRect.top + radius;
-    
-    // 자연스러운 물리 충돌 판단 거리
-    const minDistance = radius * 0.6;
+    if (distance < minDistance && distance > 0) {
+      const angle = Math.atan2(dy, dx);
+      const push = (minDistance - distance) * 0.9;
+      target.style.transition = "left 0.1s linear, top 0.1s linear";
 
-    targets.forEach(target => {
-      if (target === activeEl) return;
-      
-      const targetRect = target.getBoundingClientRect();
-      const targetCenterX = targetRect.left + (targetRect.width / 2);
-      const targetCenterY = targetRect.top + (targetRect.height / 2);
-      
-      const dx = activeCenterX - targetCenterX;
-      const dy = activeCenterY - targetCenterY;
-      const distance = Math.hypot(dx, dy);
-      
-      if (distance < minDistance && distance > 0) {
-        const angle = Math.atan2(dy, dx);
-        
-        // ★ 컴퓨터와 동일한 부드러운 쿠션감을 주는 완충 계수 (0.05)
-        const overlap = minDistance - distance;
-        const push = overlap * 0.05;
+      const pushX = Math.cos(angle) * push;
+      const pushY = Math.sin(angle) * push;
+      const fr = targetField.getBoundingClientRect();
 
-        // 즉각적 반응을 위해 트랜지션 해제
-        target.style.transition = "none";
+      let newX = ((targetRect.left - pushX - fr.left + (targetRect.width/2)) / fr.width) * 100;
+      let newY = ((targetRect.top - pushY - fr.top + (targetRect.height/2)) / fr.height) * 100;
 
-        const pushX = Math.cos(angle) * push;
-        const pushY = Math.sin(angle) * push;
-        const fr = targetField.getBoundingClientRect();
+      target.style.left = Math.max(0, Math.min(100, newX)) + "%";
+      target.style.top = Math.max(0, Math.min(100, newY)) + "%";
 
-        const currentScale = (typeof zoomScale !== 'undefined' && zoomScale > 0) ? zoomScale : 1.0;
-        const unscaledWidth = fr.width / currentScale;
-        const unscaledHeight = fr.height / currentScale;
-
-        let newX = ((targetRect.left - pushX - fr.left + (targetRect.width / 2)) / currentScale / unscaledWidth) * 100;
-        let newY = ((targetRect.top - pushY - fr.top + (targetRect.height / 2)) / currentScale / unscaledHeight) * 100;
-
-        target.style.left = Math.max(0, Math.min(100, newX)) + "%";
-        target.style.top = Math.max(0, Math.min(100, newY)) + "%";
-      }
-    });
+      setTimeout(() => { target.style.transition = "left 0.15s ease-out, top 0.15s ease-out"; }, 100);
+    }
   });
 }
 
