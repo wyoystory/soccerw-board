@@ -70,8 +70,8 @@ overscroll-behavior: none;   /* X/Y축 전체 바운스 및 새로고침 차단 
     left: 0;
     width: 100%;
     height: 100%;
-z-index: 3;
-    pointer-events: none; /* 기본 상태에서는 아래 플레이어 클릭 가능하도록 설정 */
+    pointer-events: none; /* 펜 모드가 아닐 때는 클릭 통과 */
+    z-index: 10;
 }
 
 #field-container, #field, #field-content, #field * {
@@ -123,15 +123,18 @@ transform-origin: center center !important;
 }    
 
 .player, .ball, #ball {
-    position: absolute !important; /* #field-content 내부 기준 절대 좌표 */
-    z-index: 10; /* 필드 배경 및 캔버스보다 위에 배치 */
-    transform: translate(-50%, -50%); /* 센터 정렬 기준 유지 */
-
-    /* ★ 안드로이드 스마트폰 터치 필수 속성 ★ */
-    touch-action: none !important;      /* 브라우저 기본 스크롤/줌 제스처 완전 차단 */
-    pointer-events: auto !important;   /* 터치/클릭 이벤트 수신 허용 */
-    -webkit-user-select: none;          /* 꾹 눌렀을 때 텍스트 선택 방지 */
+    position: absolute !important;
+    z-index: 50;
+    transform: translate(-50%, -50%);
+    touch-action: none !important;
+    pointer-events: auto !important;
+    -webkit-user-select: none;
     user-select: none;
+}
+
+.top-menu, .setting-btn, #settingModal, #simControlBar, .control-btn {
+    z-index: 200 !important;
+    pointer-events: auto !important;
 }
 
 .field-wrapper {
@@ -1766,9 +1769,9 @@ function toggleSimulationBar(checked) {
 // [6] 펜 및 캔버스 그리기 기능
 function togglePenMode() {
     const penImg = document.getElementById('penBtnImg');
-    const container = document.getElementById('field-container');
+    const container = document.getElementById('field-container') || document.getElementById('field');
     const players = document.querySelectorAll('.player');
-    const targetBall = ball || document.getElementById('ball');
+    const targetBall = typeof ball !== 'undefined' ? ball : document.getElementById('ball');
     const canvas = document.getElementById('drawingCanvas');
 
     penActive = !penActive;
@@ -1776,9 +1779,10 @@ function togglePenMode() {
     if (penActive) {
         if (penImg) penImg.src = 'pen1.png';
         if (canvas && container) {
-            canvas.style.zIndex = "100"; 
+            canvas.style.zIndex = "100"; // 펜 모드일 때만 맨 위로
             canvas.style.pointerEvents = "auto";
-// 캔버스 크기가 다를 때만 초기화하여 기존 그림 유지
+            
+            // 캔버스 크기가 다를 때만 초기화하여 기존 그림 유지
             if (canvas.width !== container.offsetWidth || canvas.height !== container.offsetHeight) {
                 canvas.width = container.offsetWidth;
                 canvas.height = container.offsetHeight;
@@ -1788,7 +1792,10 @@ function togglePenMode() {
         if (targetBall) targetBall.style.pointerEvents = "none";
     } else {
         if (penImg) penImg.src = 'pen.png';
-        if (canvas) canvas.style.pointerEvents = "none";
+        if (canvas) {
+            canvas.style.zIndex = "1"; // ★ 핵심: 펜을 끌 때 캔버스를 맨 뒤로 내림
+            canvas.style.pointerEvents = "none"; // 클릭 통과
+        }
         players.forEach(p => p.style.pointerEvents = "auto");
         if (targetBall) targetBall.style.pointerEvents = "auto";
     }
@@ -2030,21 +2037,17 @@ function stopSimulation() {
 
 // [8] 반응형 캔버스 해상도 자동 동기화
 function updateCanvasSize() {
-    const targetField = field || document.getElementById('field');
+    const fieldEl = document.getElementById('field');
     const canvas = document.getElementById('drawingCanvas');
-    
-    if (targetField && canvas) {
-        const rect = targetField.getBoundingClientRect();
-        if (canvas.width !== rect.width || canvas.height !== rect.height) {
-            canvas.width = rect.width;
-            canvas.height = rect.height;
-        }
-    }
-}
+    if (!canvas || !fieldEl) return;
 
-// 화면 크기 변경 시 및 로드 시 실행
+    // 캔버스 렌더링 크기를 필드 실제 크기와 일치시킵니다.
+    canvas.width = fieldEl.clientWidth;
+    canvas.height = fieldEl.clientHeight;
+}
+// 페이지 로드 및 리사이즈 시 호출
 window.addEventListener('resize', updateCanvasSize);
-window.addEventListener('DOMContentLoaded', updateCanvasSize);
+window.addEventListener('load', updateCanvasSize);
 
 let currentZoomState = 'center'; // 'left', 'center', 'right', 'reset'
 let zoomScale = 1.0; // 초기 화면 스케일 (기본 1.0배)
