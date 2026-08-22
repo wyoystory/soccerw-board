@@ -2154,49 +2154,77 @@ function updateCanvasSize() {
 window.addEventListener('resize', updateCanvasSize);
 window.addEventListener('load', updateCanvasSize);
 
-let currentZoomState = 'center'; // 'left', 'center', 'right', 'reset'
-let zoomScale = 1.0; // 초기 화면 스케일 (기본 1.0배)
-let panX = 0, panY = 0;
+// [9] 줌 및 필드 이동 (Translate-First & Pixel Clamping 적용)
+let currentZoomState = 'center';
+let zoomScale = 1.0;
+let currentPanX = 0; // px 단위
+let currentPanY = 0; // px 단위
 let isPanning = false;
 let startX = 0, startY = 0;
 
-// 줌 변환 실행 함수
+// 줌 변환 실행 및 한계선 고정 함수
 function applyTransform() {
     const content = document.getElementById('field-content');
-    if (content) {
-        content.style.transform = `scale(${zoomScale}) translate(${panX}%, ${panY}%)`;
+    const field = document.getElementById('field');
+    if (!content || !field) return;
+
+    if (zoomScale <= 1.0) {
+        currentPanX = 0;
+        currentPanY = 0;
+        content.style.transform = "translate(0px, 0px) scale(1)";
+        return;
     }
+
+    // 부모 틀(#field)의 실제 픽셀 크기
+    const w = field.clientWidth;
+    const h = field.clientHeight;
+
+    // center center 기준 확대 시, 테두리가 틀 안쪽으로 절대 들어오지 않는 [최대 이동 허용 px]
+    const maxPanX = (w * (zoomScale - 1)) / 2;
+    const maxPanY = (h * (zoomScale - 1)) / 2;
+
+    // 한계선 강제 고정 (Clamping)
+    currentPanX = Math.max(-maxPanX, Math.min(maxPanX, currentPanX));
+    currentPanY = Math.max(-maxPanY, Math.min(maxPanY, currentPanY));
+
+    // ★ translate를 앞에 배치하여 픽셀 변환 오차 차단
+    content.style.transform = `translate(${currentPanX}px, ${currentPanY}px) scale(${zoomScale})`;
 }
 
 // 줌 버튼 클릭 시 실행되는 함수
 function zoomField(position) {
-    const content = document.getElementById('field-content');
-    if (!content) return;
+    const field = document.getElementById('field');
+    if (!field) return;
 
-    if (typeof currentZoomState !== 'undefined') {
-        currentZoomState = position;
-    }
+    currentZoomState = position;
+    const w = field.clientWidth;
 
     switch (position) {
         case 'left':
-            zoomScale = 1.5; panX = 16.5; panY = 0;
+            zoomScale = 1.5;
+            currentPanX = (w * (zoomScale - 1)) / 2; // 좌측 끝에 딱 맞추기
+            currentPanY = 0;
             break;
         case 'right':
-            zoomScale = 1.5; panX = -16.5; panY = 0;
+            zoomScale = 1.5;
+            currentPanX = -((w * (zoomScale - 1)) / 2); // 우측 끝에 딱 맞추기
+            currentPanY = 0;
             break;
         case 'center':
-            zoomScale = 1.5; panX = 0; panY = 0;
+            zoomScale = 1.5;
+            currentPanX = 0;
+            currentPanY = 0;
             break;
         case 'reset':
         default:
-            zoomScale = 1; panX = 0; panY = 0;
-            applyTransform();
-            return;
+            zoomScale = 1.0;
+            currentPanX = 0;
+            currentPanY = 0;
+            break;
     }
 
     applyTransform();
 }
-
 function resetZoom() {
     zoomField('reset');
 }
@@ -2206,10 +2234,8 @@ const fieldElem = document.getElementById('field');
 if (fieldElem) {
     // 터치 / 마우스 드래그 시작
     const startPan = (e) => {
-        // ★ 핵심 1: 전체 화면(1배 이하) 상태에서는 필드를 누르거나 드래그해도 반응하지 않도록 차단
         if (typeof zoomScale === 'undefined' || zoomScale <= 1) return;
         
-        // 버튼, 선수, 공, 설정창, 캔버스 드로잉 관련 클릭 시 드래그 동작 안 함
         const isInteractive = e.target.closest('#ball, .ball, .player, .sim-btn, button, input, select, .setting-modal, #settingModal, [onclick]');
         if (isInteractive) return;
 
@@ -2227,21 +2253,16 @@ if (fieldElem) {
 
     // 마우스 / 손가락 이동 (필드 화면 밀기)
     const movePan = (e) => {
-        // ★ 핵심 2: 줌(1.5배)이 실제로 되어있지 않거나 드래그 중이 아니면 화면 이동 방지
         if (!isPanning || zoomScale <= 1) return;
         
         const pageX = e.touches ? e.touches[0].pageX : e.pageX;
         const pageY = e.touches ? e.touches[0].pageY : e.pageY;
 
-        const deltaX = (pageX - startX) * 0.08; 
-        const deltaY = (pageY - startY) * 0.08;
+        const deltaX = pageX - startX; 
+        const deltaY = pageY - startY;
 
-        panX += deltaX;
-        panY += deltaY;
-
-        // 위아래/좌우 이동 범위 제한
-        panX = Math.max(-35, Math.min(35, panX));
-        panY = Math.max(-30, Math.min(30, panY));
+        currentPanX += deltaX;
+        currentPanY += deltaY;
 
         startX = pageX;
         startY = pageY;
@@ -2274,34 +2295,28 @@ function fixPlayerLayers() {
     
     if (!field || !fieldContent) return;
 
-    // #field 바로 아래에 잘못 위치한 모든 선수(.player)들을 #field-content 안으로 자동 이동
     const misplacedPlayers = field.querySelectorAll(':scope > .player');
     misplacedPlayers.forEach(player => {
         fieldContent.appendChild(player);
     });
 }
 
-// 1. 페이지 로드 완료 시 자동 실행
 document.addEventListener('DOMContentLoaded', fixPlayerLayers);
 
-// 2. 줌(zoomField)이 실행될 때도 혹시 몰라 한 번 더 실행하여 보정
 const originalZoomField = window.zoomField;
 window.zoomField = function(position) {
-    fixPlayerLayers(); // 선수 레이어 위치 강제 보정
+    fixPlayerLayers();
     if (typeof originalZoomField === 'function') {
         originalZoomField(position);
     }
 };
 
-
-// 모바일 브라우저 당겨서 새로고침(Pull-to-Refresh) 완전 차단
+// 모바일 브라우저 당겨서 새로고침 차단
 document.addEventListener('touchmove', function(e) {
-  // 터치 위치가 필드 또는 작전판 전체 영역 내부일 때 새로고침 동작 차단
   if (e.cancelable) {
     e.preventDefault();
   }
 }, { passive: false });
-
 
 
 
