@@ -66,7 +66,7 @@ overscroll-behavior: none;   /* X/Y축 전체 바운스 및 새로고침 차단 
     width: 100%;
     height: 100%;
     pointer-events: none; /* 펜 모드가 아닐 때는 클릭 통과 */
-    z-index: 10 !important;
+    z-index: 100;
 }
 
 #field-container, #field, #field-content, #field * {
@@ -1677,7 +1677,7 @@ function alignPlayers(team, isReverse = false) {
 }
 function toggleOverlap() {
     // boolean 값으로 명확히 지정
-    isOverlapPrevented = !isOverlapPrevented; 
+isOverlapPreventionActive = !isOverlapPreventionActive; 
 }
 
 function toggleOverlapPrevention(show) { isOverlapPreventionActive = show; }
@@ -1853,17 +1853,27 @@ function togglePenMode() {
     if (penActive) {
         if (penImg) penImg.src = 'pen1.png';
         if (canvas && container) {
-            canvas.style.zIndex = "100"; // 펜 모드일 때만 맨 위로
-            canvas.style.pointerEvents = "auto"; // 캔버스 클릭 가능
+            // 1. 펜 모드 ON: 투명 종이(캔버스)를 맨 위로 올리고 터치/클릭을 받음
+            canvas.style.zIndex = "100"; 
+            canvas.style.pointerEvents = "auto"; 
 
-            // 캔버스 크기가 다를 때만 초기화하여 기존 그림 유지
+            // 캔버스 크기가 맞지 않을 때만 초기화 (그려둔 그림 유지)
             if (canvas.width !== container.offsetWidth || canvas.height !== container.offsetHeight) {
+                // 기존 그림 임시 저장 후 리사이즈 시 복원
+                const tempCanvas = document.createElement('canvas');
+                tempCanvas.width = canvas.width;
+                tempCanvas.height = canvas.height;
+                const tempCtx = tempCanvas.getContext('2d');
+                tempCtx.drawImage(canvas, 0, 0);
+
                 canvas.width = container.offsetWidth;
                 canvas.height = container.offsetHeight;
+
+                const ctx = canvas.getContext('2d');
+                ctx.drawImage(tempCanvas, 0, 0);
             }
 
-            // ★ 펜 모드일 때만 캔버스에 그리기 이벤트 직접 등록
-            // 이렇게 하면 펜 모드가 켜진 동안에는 이 이벤트만 실행되고 필드 이동은 발생하지 않습니다.
+            // 그리기 이벤트 등록
             canvas.addEventListener('mousedown', startDrawing);
             canvas.addEventListener('mousemove', draw);
             canvas.addEventListener('mouseup', stopDrawing);
@@ -1871,16 +1881,18 @@ function togglePenMode() {
             canvas.addEventListener('touchmove', draw, { passive: false });
             canvas.addEventListener('touchend', stopDrawing);
         }
+        // 펜 모드일 때는 선수가 클릭/드래그되지 않게 터치 차단
         players.forEach(p => p.style.pointerEvents = "none");
         if (targetBall) targetBall.style.pointerEvents = "none";
+
     } else {
         if (penImg) penImg.src = 'pen.png';
         if (canvas) {
-            canvas.style.zIndex = "1"; // 펜을 끌 때 캔버스를 맨 뒤로 내림
-            canvas.style.pointerEvents = "none"; // 클릭 통과
+            // 2. 펜 모드 OFF: 그려진 그림은 그대로 보이되, 터치는 캔버스를 '통과'시킴
+            canvas.style.zIndex = "2"; 
+            canvas.style.pointerEvents = "none"; 
 
-            // ★ 펜 모드 끄면 캔버스 그리기 이벤트 제거
-            // 필드 판에 대한 터치/마우스 이벤트를 차단하지 않으므로 필드 이동이 가능해집니다.
+            // 그리기 이벤트 제거
             canvas.removeEventListener('mousedown', startDrawing);
             canvas.removeEventListener('mousemove', draw);
             canvas.removeEventListener('mouseup', stopDrawing);
@@ -1888,6 +1900,7 @@ function togglePenMode() {
             canvas.removeEventListener('touchmove', draw);
             canvas.removeEventListener('touchend', stopDrawing);
         }
+        // 선수 및 공 터치 다시 활성화 (자유롭게 이동 가능)
         players.forEach(p => p.style.pointerEvents = "auto");
         if (targetBall) targetBall.style.pointerEvents = "auto";
     }
@@ -1904,18 +1917,6 @@ function getCanvasPos(e) {
     return { x: (clientX - rect.left) * scaleX, y: (clientY - rect.top) * scaleY };
 }
 
-window.addEventListener('mousedown', startDrawing);
-window.addEventListener('mousemove', draw);
-window.addEventListener('mouseup', stopDrawing);
-window.addEventListener('touchstart', startDrawing, { passive: false });
-window.addEventListener('touchmove', (e) => {
-    if (penActive && isDrawing) {
-        draw(e);
-        if (e.cancelable) e.preventDefault();
-    }
-}, { passive: false });
-
-window.addEventListener('touchend', stopDrawing);
 
 function startDrawing(e) {
     if (!penActive) return;
@@ -2311,13 +2312,12 @@ window.zoomField = function(position) {
     }
 };
 
-// 모바일 브라우저 당겨서 새로고침 차단
 document.addEventListener('touchmove', function(e) {
-  if (e.cancelable) {
+  // 모달 내부나 스크롤 가능 구역이 아닐 때만 캔슬
+  if (!e.target.closest('.scrollable, .setting-modal') && e.cancelable) {
     e.preventDefault();
   }
 }, { passive: false });
-
 
 
 
